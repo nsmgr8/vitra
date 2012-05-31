@@ -554,7 +554,7 @@ class Ticket(object):
         try:
             tid = int(tid)
             ticket = trac.server.ticket.get(tid)
-            self.current = {'id': tid, 'changed': get_time(ticket[2])}
+            self.current = {'id': tid, '_ts': ticket[3]['_ts']}
             ticket_changelog = trac.server.ticket.changeLog(tid)
             self.current_component = ticket[3].get("component")
             actions = self.get_actions()
@@ -613,8 +613,14 @@ class Ticket(object):
         return '\n'.join(str_ticket)
 
     def update(self, comment, attribs={}, notify=False):
-        return trac.server.ticket.update(self.current.get('id'), comment,
-                                         attribs, notify)
+        try:
+            attribs['_ts'] = self.current['_ts']
+            return trac.server.ticket.update(self.current['id'], comment,
+                                             attribs, notify)
+        except xmlrpclib.Fault as e:
+            print 'Not committing the changes.'
+            print 'Error: {0}'.format(e.faultString)
+        return None
 
     def create(self, description, summary, attributes={}):
         return trac.server.ticket.create(summary, description, attributes)
@@ -674,7 +680,7 @@ class Ticket(object):
             else:
                 print 'invalid option'
                 return
-        self.update(comment, attribs)
+        return self.update(comment, attribs)
 
     def get_options(self, key='type', type_='attrib'):
         options = {
@@ -927,30 +933,16 @@ class Trac(object):
         if not any((comment, attribs)):
             print 'nothing to change'
             return
-
-        if self.check_ticket_change():
-            self.ticket.update(comment, attribs, False)
-            self.ticket_view()
-
-    def act_ticket(self, action):
-        if self.check_ticket_change():
-            self.ticket.act(action, self.uiticket.windows['comment'].content)
-            self.ticket_view()
-
-    def check_ticket_change(self):
-        tid = self.ticket.current.get('id')
-        if not tid:
-            print "Cannot make changes when there is no current ticket open"
-            return False
-        change_time = get_time(trac.server.ticket.get(tid)[2])
-        if change_time > self.ticket.current['changed']:
-            print 'Ticket has been updated from another session.',
-            print 'Not committing the changes.'
-            return False
+        tid = self.ticket.current['id']
         if not confirm('Update ticket #{0}?'.format(tid)):
             print 'Update cancelled.'
             return False
-        return True
+        if self.ticket.update(comment, attribs, False):
+            self.ticket_view()
+
+    def act_ticket(self, action):
+        if self.ticket.act(action, self.uiticket.windows['comment'].content):
+            self.ticket_view()
 
     def open_line(self):
         line = vim.current.line
