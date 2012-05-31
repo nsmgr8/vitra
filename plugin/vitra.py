@@ -189,9 +189,9 @@ class WikiUI(UI):
         else:
             self.windows['wiki'].create("vertical belowright new")
         if vim.eval('g:tracWikiPreview') == '1':
-            w = min(self.windows['wiki'].width / 2, 80)
+            w = self.windows['wiki'].width / 2
             if self.windows['preview'].create('vertical belowright new'):
-                self.windows['preview'].resize(width=w)
+                self.windows['preview'].resize(width=min(w, 85))
         self.windows['wiki'].focus()
         self.windows['attachment'].create('belowright 3 new')
 
@@ -209,13 +209,13 @@ class TicketUI(UI):
         if vim.eval('g:tracTicketStyle') == 'full':
             if self.windows['ticket'].create('vertical belowright new'):
                 vim.command('only')
-            w = self.windows['ticket'].width / 3
-            h = self.windows['ticket'].height / 3
+            w = self.windows['ticket'].width / 2
+            h = self.windows['ticket'].height / 2
             if self.windows['list'].create('leftabove new'):
-                self.windows['list'].resize(height=h)
+                self.windows['list'].resize(height=min(h, 20))
             self.focus('ticket')
             if self.windows['comment'].create('vertical belowright new'):
-                self.windows['comment'].resize(width=w)
+                self.windows['comment'].resize(width=min(w, 85))
         else:
             self.windows['ticket'].create("belowright new")
             self.windows['comment'].create("belowright new")
@@ -273,7 +273,7 @@ class PreviewWindow(NonEditableWindow):
 
         self.command('setlocal modifiable')
         self.command('norm ggdG')
-        self.command('r!lynx -dump {0}'.format(file_name))
+        self.command('silent r!lynx -dump {0}'.format(file_name))
         self.command('setlocal nomodifiable')
         self.command('norm gg')
 
@@ -296,16 +296,16 @@ class TicketListWindow(NonEditableWindow):
             vim.command('%Align ||')
         except:
             vim.command('echo "install Align for the best view of summary"')
-        vim.command('silent %s/^\s*|| / * /g')
+        vim.command('silent %s/^\s*|| / - /g')
         NonEditableWindow.on_write(self)
         vim.command('silent norm 2gg')
         vim.command('syn match Ignore /||/')
-        vim.command('syn match Number /\d*/')
+        vim.command('syn match Number /\<\d*\>/')
         vim.command('syn match Error /^\s*#.*$/')
-        vim.command('syn match Keyword /^.*: .*$/ contains=Title')
-        vim.command('syn match Title /^.*:/ contained')
+        vim.command('syn match Keyword /^\s-\s.*: .*$/ contains=Title')
+        vim.command('syn match Title /^\s-\s.*:/ contained')
         hilighters = ['Constant', 'Special', 'Identifier', 'Statement',
-                      'PreProc', 'Type', 'Underlined', 'Error', 'Todo']
+                      'PreProc', 'Type', 'Underlined']
         num_hi = len(hilighters)
         fields = trac.ticket.fields
         for k in fields:
@@ -314,7 +314,7 @@ class TicketListWindow(NonEditableWindow):
                     float(a)
                 except ValueError:
                     hi = hilighters[i % num_hi]
-                    vim.command('syn match {0} /{1}/'.format(hi,
+                    vim.command('syn match {0} /\<{1}\>/'.format(hi,
                                 a.replace('/', '\/')))
 
 
@@ -824,6 +824,7 @@ class Trac(object):
 
         contents = {
             'ticket': self.ticket.get(tid),
+            'comment': '',
             'attachment': '\n'.join(self.ticket.attachments),
         }
         titles = {'ticket': '\#{0}'.format(tid)}
