@@ -41,7 +41,7 @@ com! -nargs=? -complete=customlist,ComWiki TWOpen python trac.wiki_view(<f-args>
 com! -nargs=* TWSave python trac.wiki.save(<q-args>)
 com! -nargs=0 TWInfo python print trac.wiki.get_page_info()
 
-com! -nargs=? TTOpen python trac.ticket_view(<f-args>)
+com! -nargs=? -complete=customlist,ComTicket TTOpen python trac.ticket_view(<f-args>)
 
 com! -nargs=0 TTSetSummary python trac.update_ticket('summary')
 com! -nargs=0 TTUpdateDescription python trac.update_ticket('description')
@@ -81,6 +81,11 @@ endfun
 
 fun ComWiki(A, L, P)
     python trac.wiki.get_options()
+    return filter(split(g:tracOptions, '|'), 'v:val =~ "^' . a:A . '"')
+endfun
+
+fun ComTicket(A, L, P)
+    python trac.ticket.get_options(type_='history')
     return filter(split(g:tracOptions, '|'), 'v:val =~ "^' . a:A . '"')
 endfun
 

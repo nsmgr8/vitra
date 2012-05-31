@@ -307,9 +307,9 @@ class TicketListWindow(NonEditableWindow):
         hilighters = ['Constant', 'Special', 'Identifier', 'Statement',
                       'PreProc', 'Type', 'Underlined']
         num_hi = len(hilighters)
-        fields = trac.ticket.fields
-        for k in fields:
-            for i, a in enumerate(fields[k]):
+        options = trac.ticket.options
+        for k in options:
+            for i, a in enumerate(options[k]):
                 try:
                     float(a)
                 except ValueError:
@@ -478,6 +478,7 @@ class Ticket(object):
     def initialise(self):
         self.current = {}
         self.fields = []
+        self.options = {}
         self.actions = []
         self.tickets = []
         self.sorter = {'order': 'priority', 'group': 'milestone'}
@@ -487,10 +488,13 @@ class Ticket(object):
 
     def get_fields(self):
         fields = trac.server.ticket.getTicketFields()
-        self.fields = {}
+        self.options = {}
+        self.fields = []
         for f in fields:
+            self.fields.append(f)
             if 'options' in f:
-                self.fields[f['name']] = f['options']
+                self.options[f['name']] = f['options']
+        self.max_label_width = max([len(f['label']) for f in self.fields])
 
     def set_sort_attr(self, attrib, value):
         self.sorter[attrib] = value
@@ -556,11 +560,16 @@ class Ticket(object):
         except:
             return 'Please select a ticket'
 
-        str_ticket = ["= Ticket Summary =", "",
-                "Ticket #{0}: {1}".format(ticket[0], ticket[3]['summary']), ""]
-        for f in ['owner', 'reporter'] + self.fields.keys():
-            v = ticket[3].get(f, '')
-            str_ticket.append(" *{0:>12}: {1}".format(f.title(), v))
+        str_ticket = ["= Ticket Summary =", ""]
+        for f in self.fields:
+            if f['name'] == 'description':
+                continue
+            if f['type'] == 'time':
+                v = get_time(ticket[3][f['name']], True)
+            else:
+                v = ticket[3].get(f['name'], '')
+            str_ticket.append(' {0:>{2}}: {1}'.format(f['label'], v,
+                                                     self.max_label_width))
 
         str_ticket.append("")
         str_ticket.append("= Description: =")
@@ -667,10 +676,11 @@ class Ticket(object):
 
     def get_options(self, key='type', type_='attrib'):
         options = {
-            'attrib': self.fields.get(key, []),
+            'attrib': self.options.get(key, []),
             'field': ['component', 'milestone', 'owner', 'priority',
                       'reporter', 'status', 'type', 'version'],
             'action': self.actions,
+            'history': map(str, trac.history['ticket']),
         }.get(type_, [])
         vim.command('let g:tracOptions="{0}"'.format("|".join(options)))
 
@@ -713,16 +723,14 @@ class Timeline(object):
             m = re.match(r"^Ticket #(\d+) (.*)$", item.title)
             if m:
                 str_feed.append("Ticket:>> {0}".format(m.group(1)))
-                str_feed.append(m.group(2))
             m = re.match(r"^([\w\d]+) (edited by .*)$", item.title)
             if m:
                 str_feed.append("Wiki:>> {0}".format(m.group(1)))
-                str_feed.append(m.group(2))
             m = re.match(r"^Changeset \[([\w]+)\]: (.*)$", item.title)
             if m:
                 str_feed.append("Changeset:>> {0}".format(m.group(1)))
-                str_feed.append(m.group(2))
 
+            str_feed.append(item.title)
             str_feed.append("Link: {0}".format(item.link))
             str_feed.append('')
 
@@ -864,6 +872,7 @@ class Trac(object):
         vim.command("setlocal buftype=nofile")
         vim.command('silent Nread ' + changeset + '?format=diff')
         vim.command('set ft=diff')
+        vim.command('silent %s/\r//g')
 
     def sort_ticket(self, sorter, attr):
         self.ticket.set_sort_attr(sorter, attr)
@@ -1009,8 +1018,8 @@ def trac_init():
     trac = Trac()
     trac.ticket.get_fields()
 
-    fields = trac.ticket.fields
-    types = fields['type']
+    options = trac.ticket.options
+    types = options['type']
     for t in types:
         name = 'TTCreate{0}'.format(t.title())
         meth = 'python trac.create_ticket("{0}", <q-args>)'.format(t)
@@ -1023,7 +1032,7 @@ fun Com{0}(A, L, P)
 endfun
 """
 
-    for f in fields:
+    for f in options:
         comp = '-complete=customlist,Com{0}'.format(f.title())
         if f not in ('status', 'resolution'):
             name = 'TTSet{0}'.format(f.title())
