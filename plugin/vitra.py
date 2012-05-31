@@ -228,16 +228,6 @@ class SearchUI(UI):
         self.windows = {'search': SearchWindow(prefix='Search')}
 
 
-class TimelineUI(UI):
-    def __init__(self):
-        self.windows = {'timeline': TimelineWindow(prefix='Timeline')}
-
-
-class ServerUI(UI):
-    def __init__(self):
-        self.windows = {'server': ServerWindow(prefix='Trac', name='Servers')}
-
-
 class WikiWindow(Window):
     def on_create(self):
         nmaps = [
@@ -394,6 +384,18 @@ class AttachmentWindow(NonEditableWindow):
         vim.command('setlocal cursorline')
         vim.command('setlocal linebreak')
         vim.command('setlocal noswapfile')
+
+
+class ChangesetWindow(NonEditableWindow):
+    def on_write(self):
+        self.command('set ft=diff')
+        self.command('silent %s/\r//g')
+        NonEditableWindow.on_write(self)
+
+    def load(self, changeset):
+        self.command('setlocal modifiable')
+        self.command('silent Nread {0}?format=diff'.format(changeset))
+        self.on_write()
 
 
 class Wiki(object):
@@ -745,10 +747,12 @@ class Trac(object):
         self.timeline = Timeline()
 
         self.uiwiki = WikiUI()
-        self.uiserver = ServerUI()
         self.uiticket = TicketUI()
-        self.uisearch = SearchUI()
-        self.uitimeline = TimelineUI()
+
+        self.server_window = ServerWindow(prefix='Trac', name='Servers')
+        self.timeline_window = TimelineWindow(prefix='Timeline')
+        self.search_window = SearchWindow(prefix='Search')
+        self.changeset_window = ChangesetWindow(prefix='Changeset')
 
         self.server_list = vim.eval('g:tracServerList')
         default_server = vim.eval('g:tracDefaultServer')
@@ -847,32 +851,28 @@ class Trac(object):
 
     def search_view(self, keyword):
         output_string = self.search.search(keyword)
-        self.uisearch.create()
-        self.uisearch.update(contents={'search': output_string},
-                             titles={'search': keyword})
+        self.search_window.create()
+        self.search_window.write(output_string)
+        self.search_window.set_name(keyword)
 
     def timeline_view(self):
         output_string = self.timeline.read_timeline(self.server_url)
-        self.uitimeline.create()
-        self.uitimeline.update(contents={'timeline': output_string},
-                               titles={'timeline': self.server_name})
+        self.timeline_window.create()
+        self.timeline_window.write(output_string)
+        self.timeline_window.set_name(self.server_name)
 
     def server_view(self):
-        self.uiserver.create()
         servers = "\n".join(['{0}: {1}'.format(key, val['server']) for key, val
                              in self.server_list.iteritems()])
-        self.uiserver.update({'server': servers})
+        self.server_window.create()
+        self.server_window.write(servers)
 
     def changeset_view(self, changeset):
-        changeset = '{scheme}://{server}/changeset/{changeset}'.format(
+        cs_url = '{scheme}://{server}/changeset/{changeset}'.format(
                 changeset=changeset, **self.server_url)
-
-        vim.command('belowright split')
-        vim.command('enew')
-        vim.command("setlocal buftype=nofile")
-        vim.command('silent Nread ' + changeset + '?format=diff')
-        vim.command('set ft=diff')
-        vim.command('silent %s/\r//g')
+        self.changeset_window.create()
+        self.changeset_window.load(cs_url)
+        self.changeset_window.set_name(changeset)
 
     def sort_ticket(self, sorter, attr):
         self.ticket.set_sort_attr(sorter, attr)
