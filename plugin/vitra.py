@@ -390,6 +390,7 @@ class ChangesetWindow(NonEditableWindow):
     def on_write(self):
         self.command('set ft=diff')
         self.command('silent %s/\r//g')
+        self.command('norm gg')
         NonEditableWindow.on_write(self)
 
     def load(self, changeset):
@@ -554,7 +555,7 @@ class Ticket(object):
         try:
             tid = int(tid)
             ticket = trac.server.ticket.get(tid)
-            self.current = {'id': tid, 'changed': get_time(ticket[2])}
+            self.current = {'id': tid, '_ts': ticket[3]['_ts']}
             ticket_changelog = trac.server.ticket.changeLog(tid)
             self.current_component = ticket[3].get("component")
             actions = self.get_actions()
@@ -613,8 +614,14 @@ class Ticket(object):
         return '\n'.join(str_ticket)
 
     def update(self, comment, attribs={}, notify=False):
-        return trac.server.ticket.update(self.current.get('id'), comment,
-                                         attribs, notify)
+        try:
+            attribs['_ts'] = self.current['_ts']
+            return trac.server.ticket.update(self.current['id'], comment,
+                                             attribs, notify)
+        except xmlrpclib.Fault as e:
+            print 'Not committing the changes.'
+            print 'Error: {0}'.format(e.faultString)
+        return None
 
     def create(self, description, summary, attributes={}):
         return trac.server.ticket.create(summary, description, attributes)
@@ -674,7 +681,7 @@ class Ticket(object):
             else:
                 print 'invalid option'
                 return
-        self.update(comment, attribs)
+        return self.update(comment, attribs)
 
     def get_options(self, key='type', type_='attrib'):
         options = {
@@ -687,64 +694,60 @@ class Ticket(object):
         vim.command('let g:tracOptions="{0}"'.format("|".join(options)))
 
 
-class Search(object):
-    def search(self, search_pattern):
-        a_search = trac.server.search.performSearch(search_pattern)
-        result = [
-            "Results for {0}".format(search_pattern),
-            "(Hit <enter> or <space> on a line containing :>>)",
-            "",
-        ]
-        for search in a_search:
-            if '/ticket/' in search[0]:
-                prefix = "Ticket"
-            if '/wiki/' in search[0]:
-                prefix = "Wiki"
-            if '/changeset/' in search[0]:
-                prefix = "Changeset"
-            title = '{0}:>> {1}'.format(prefix, os.path.basename(search[0]))
-            result.extend([title, search[4], ""])
-        return '\n'.join(result)
+def search(search_pattern):
+    a_search = trac.server.search.performSearch(search_pattern)
+    result = [
+        "Results for {0}".format(search_pattern),
+        "(Hit <enter> or <space> on a line containing :>>)",
+        "",
+    ]
+    for search in a_search:
+        if '/ticket/' in search[0]:
+            prefix = "Ticket"
+        if '/wiki/' in search[0]:
+            prefix = "Wiki"
+        if '/changeset/' in search[0]:
+            prefix = "Changeset"
+        title = '{0}:>> {1}'.format(prefix, os.path.basename(search[0]))
+        result.extend([title, search[4], ""])
+    return '\n'.join(result)
 
 
-class Timeline(object):
-    def read_timeline(self, server):
-        try:
-            import feedparser
-        except ImportError:
-            print "Please install feedparser.py!"
-            return
+def timeline(server):
+    try:
+        import feedparser
+    except ImportError:
+        print "Please install feedparser.py!"
+        return
 
-        query = 'ticket=on&changeset=on&wiki=on&max=50&daysback=90&format=rss'
-        feed = '{scheme}://{server}/timeline?{q}'.format(q=query, **server)
-        d = feedparser.parse(feed)
-        str_feed = ["Hit <enter> or <space> on a line containing :>>", ""]
-        for item in d['items']:
-            str_feed.append(strftime("%Y-%m-%d %H:%M:%S", item.updated_parsed))
+    query = 'ticket=on&changeset=on&wiki=on&max=50&daysback=90&format=rss'
+    feed = '{scheme}://{server}/timeline?{q}'.format(q=query, **server)
+    d = feedparser.parse(feed)
+    str_feed = ["Hit <enter> or <space> on a line containing :>>", ""]
+    for item in d['items']:
+        str_feed.append(strftime("%Y-%m-%d %H:%M:%S", item.updated_parsed))
 
-            m = re.match(r"^Ticket #(\d+) (.*)$", item.title)
-            if m:
-                str_feed.append("Ticket:>> {0}".format(m.group(1)))
-            m = re.match(r"^([\w\d]+) (edited by .*)$", item.title)
-            if m:
-                str_feed.append("Wiki:>> {0}".format(m.group(1)))
-            m = re.match(r"^Changeset \[([\w]+)\]: (.*)$", item.title)
-            if m:
-                str_feed.append("Changeset:>> {0}".format(m.group(1)))
+        m = re.match(r"^Ticket #(\d+) (.*)$", item.title)
+        if m:
+            str_feed.append("Ticket:>> {0}".format(m.group(1)))
+        m = re.match(r"^([\w\d]+) (edited by .*)$", item.title)
+        if m:
+            str_feed.append("Wiki:>> {0}".format(m.group(1)))
+        m = re.match(r"^Changeset \[([\w]+)\]: (.*)$", item.title)
+        if m:
+            str_feed.append("Changeset:>> {0}".format(m.group(1)))
 
-            str_feed.append(item.title)
-            str_feed.append("Link: {0}".format(item.link))
-            str_feed.append('')
+        str_feed.append(item.title)
+        str_feed.append("Link: {0}".format(item.link))
+        str_feed.append('')
 
-        return '\n'.join(str_feed)
+    return '\n'.join(str_feed)
 
 
 class Trac(object):
     def __init__(self):
         self.wiki = Wiki()
-        self.search = Search()
         self.ticket = Ticket()
-        self.timeline = Timeline()
 
         self.uiwiki = WikiUI()
         self.uiticket = TicketUI()
@@ -850,27 +853,21 @@ class Trac(object):
         self.set_history('ticket', tid)
 
     def search_view(self, keyword):
-        output_string = self.search.search(keyword)
-        self.search_window.create()
-        self.search_window.write(output_string)
+        self.search_window.write(search(keyword))
         self.search_window.set_name(keyword)
 
     def timeline_view(self):
-        output_string = self.timeline.read_timeline(self.server_url)
-        self.timeline_window.create()
-        self.timeline_window.write(output_string)
+        self.timeline_window.write(timeline(self.server_url))
         self.timeline_window.set_name(self.server_name)
 
     def server_view(self):
         servers = "\n".join(['{0}: {1}'.format(key, val['server']) for key, val
                              in self.server_list.iteritems()])
-        self.server_window.create()
         self.server_window.write(servers)
 
     def changeset_view(self, changeset):
         cs_url = '{scheme}://{server}/changeset/{changeset}'.format(
                 changeset=changeset, **self.server_url)
-        self.changeset_window.create()
         self.changeset_window.load(cs_url)
         self.changeset_window.set_name(changeset)
 
@@ -927,30 +924,16 @@ class Trac(object):
         if not any((comment, attribs)):
             print 'nothing to change'
             return
-
-        if self.check_ticket_change():
-            self.ticket.update(comment, attribs, False)
-            self.ticket_view()
-
-    def act_ticket(self, action):
-        if self.check_ticket_change():
-            self.ticket.act(action, self.uiticket.windows['comment'].content)
-            self.ticket_view()
-
-    def check_ticket_change(self):
-        tid = self.ticket.current.get('id')
-        if not tid:
-            print "Cannot make changes when there is no current ticket open"
-            return False
-        change_time = get_time(trac.server.ticket.get(tid)[2])
-        if change_time > self.ticket.current['changed']:
-            print 'Ticket has been updated from another session.',
-            print 'Not committing the changes.'
-            return False
+        tid = self.ticket.current['id']
         if not confirm('Update ticket #{0}?'.format(tid)):
             print 'Update cancelled.'
             return False
-        return True
+        if self.ticket.update(comment, attribs, False):
+            self.ticket_view()
+
+    def act_ticket(self, action):
+        if self.ticket.act(action, self.uiticket.windows['comment'].content):
+            self.ticket_view()
 
     def open_line(self):
         line = vim.current.line
