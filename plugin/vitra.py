@@ -322,8 +322,8 @@ class TicketWindow(NonEditableWindow):
 
     def on_write(self):
         NonEditableWindow.on_write(self)
-        vim.command('syn match Keyword / *\w*: .*$/ contains=Title')
-        vim.command('syn match Title /\w*:/ contained')
+        vim.command('syn match Keyword /^ \+[^:\*]*: .*$/ contains=Title')
+        vim.command('syn match Title /^ \+[^:\*]*:/ contained')
 
 
 class TicketCommentWindow(Window):
@@ -499,6 +499,12 @@ class Ticket(object):
                 self.options[f['name']] = f['options']
         self.max_label_width = max([len(f['label']) for f in self.fields])
 
+    def get_label(self, field):
+        for f in self.fields:
+            if f['name'] == field:
+                return f['label']
+        return ''
+
     def set_sort_attr(self, attrib, value):
         self.sorter[attrib] = value
 
@@ -575,7 +581,7 @@ class Ticket(object):
                                                      self.max_label_width))
 
         str_ticket.append("")
-        str_ticket.append("= Description: =")
+        str_ticket.append("= Description =")
         str_ticket.append("")
         str_ticket.append(ticket[3]["description"])
         str_ticket.append("")
@@ -598,11 +604,12 @@ class Ticket(object):
             elif change[2] in ('summary', 'description'):
                 str_ticket.append("''{0}'' changed".format(change[2]))
             else:
+                label = self.get_label(change[2])
                 if change[3]:
                     str_ticket.append(" * '''{0}''': ''{1}'' > ''{2}''".format(
-                        change[2], change[3], change[4]))
+                        label, change[3], change[4]))
                 else:
-                    str_ticket.append(" * '''{0}''': ''{1}''".format(change[2],
+                    str_ticket.append(" * '''{0}''': ''{1}''".format(label,
                         change[4]))
 
         str_ticket.append("")
@@ -1009,20 +1016,29 @@ def trac_init():
         vim.command('com! -nargs=+ {0} {1}'.format(name, meth))
 
     compfun = """
-fun Com{0}(A, L, P)
+fun! Com{0}(A, L, P)
     python trac.ticket.get_options('{1}')
     return filter(split(g:tracOptions, '|'), 'v:val =~ "^' . a:A . '"')
 endfun
 """
 
-    for f in options:
-        comp = '-complete=customlist,Com{0}'.format(f.title())
+    for f in trac.ticket.fields:
+        if f['type'] == 'time':
+            continue
+        fname = f['name']
+        mname = fname.title().replace('_', '')
+        if 'options' in f:
+            comp = '-complete=customlist,Com{0}'.format(mname)
+            vim.command(compfun.format(mname, fname))
+        else:
+            comp = ''
         if f not in ('status', 'resolution'):
-            name = 'TTSet{0}'.format(f.title())
-            meth = 'python trac.update_ticket("{0}", <f-args>)'.format(f)
-            vim.command('com! -nargs=? {0} {1} {2}'.format(comp, name, meth))
+            name = 'TTSet{0}'.format(mname)
+            meth = 'python trac.update_ticket("{0}", <f-args>)'.format(fname)
+            command = 'com! -nargs=? {0} {1} {2}'.format(comp, name, meth)
+            vim.command(command)
         for s in ('filter', 'ignore'):
-            name = 'TT{0}{1}'.format(s.title(), f.title())
-            meth = 'python trac.{0}_ticket("{1}", <f-args>)'.format(s, f)
-            vim.command('com! -nargs=? {0} {1} {2}'.format(comp, name, meth))
-        vim.command(compfun.format(f.title(), f))
+            name = 'TT{0}{1}'.format(s.title(), mname)
+            meth = 'python trac.{0}_ticket("{1}", <f-args>)'.format(s, fname)
+            command = 'com! -nargs=? {0} {1} {2}'.format(comp, name, meth)
+            vim.command(command)
