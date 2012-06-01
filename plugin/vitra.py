@@ -453,7 +453,7 @@ class Wiki(object):
             return info
         except:
             print 'Cannot get page info'
-            return dict()
+            return {}
 
     def add_attachment(self, file):
         file_name = os.path.basename(file)
@@ -476,15 +476,21 @@ class Wiki(object):
 
 class Ticket(object):
     def __init__(self):
+        self.fields = []
+        self.options = {}
         self.initialise()
 
     def initialise(self):
+        self._delete_vim_commands()
         self.current = {}
         self.fields = []
         self.options = {}
         self.actions = []
         self.tickets = []
-        self.sorter = {'order': 'priority', 'group': 'milestone'}
+        self.sorter = {
+            'order': vim.eval('g:tracTicketOrder'),
+            'group': vim.eval('g:tracTicketGroup'),
+        }
         self.filters = {}
         self.page = 1
         self.attachments = []
@@ -498,12 +504,68 @@ class Ticket(object):
             if 'options' in f:
                 self.options[f['name']] = f['options']
         self.max_label_width = max([len(f['label']) for f in self.fields])
+        self._generate_vim_commands()
+
+    def _delete_vim_commands(self):
+        for t in self.options.get('type', []):
+            name = t.title()
+            name = ''.join(re.findall('[a-zA-z0-9]*', name))
+            vim.command('delc TTCreate{0}'.format(name))
+        delcommand = """
+            if exists(':TT{0}{1}')
+                delc TT{0}{1}
+            endif
+            if exists('*Com{1}')
+                delf Com{1}
+            endif
+        """
+        for f in self.fields:
+            mname = f['name'].title()
+            mname = ''.join(re.findall('[a-zA-Z0-9]*', mname))
+            for s in ('Update', 'Filter', 'Ignore'):
+                vim.command(delcommand.format(s, mname))
+
+    def _generate_vim_commands(self):
+        for t in self.options['type']:
+            name = t.title()
+            name = ''.join(re.findall('[a-zA-z0-9]*', name))
+            name = 'TTCreate{0}'.format(name)
+            meth = 'python trac.create_ticket("{0}", <q-args>)'.format(t)
+            vim.command('com! -nargs=+ {0} {1}'.format(name, meth))
+
+        compfun = """
+            fun! Com{0}(A, L, P)
+                python trac.ticket.get_options('{1}')
+                let l:comp = 'v:val =~ "^' . a:A . '"'
+                return filter(split(g:tracOptions, '|'), l:comp)
+            endfun
+        """
+
+        for f in self.fields:
+            if f['type'] == 'time' or f['name'] in ('summary', 'description'):
+                continue
+            fname = f['name']
+            mname = fname.title()
+            mname = ''.join(re.findall('[a-zA-Z0-9]*', mname))
+            if 'options' in f:
+                comp = '-complete=customlist,Com{0}'.format(mname)
+                vim.command(compfun.format(mname, fname))
+            else:
+                comp = ''
+            for s in ('update', 'filter', 'ignore'):
+                if s == 'update' and mname in ('Owner', 'Reporter',
+                                               'Resolution', 'Status'):
+                    continue
+                name = 'TT{0}{1}'.format(s.title(), mname)
+                mc = 'python trac.{0}_ticket("{1}", <f-args>)'.format(s, fname)
+                command = 'com! -nargs=? {0} {1} {2}'.format(comp, name, mc)
+                vim.command(command)
 
     def get_label(self, field):
         for f in self.fields:
             if f['name'] == field:
                 return f['label']
-        return ''
+        return field.title()
 
     def set_sort_attr(self, attrib, value):
         self.sorter[attrib] = value
@@ -533,10 +595,13 @@ class Ticket(object):
             tickets = multicall()
             self.tickets = tickets
 
-        columns = ['#', 'summary', 'status', 'type', 'priority', 'component',
-                   'milestone', 'version', 'owner', 'reporter']
-        ticket_list = [' || '.join([c.title() for c in columns])]
+        columns = ['#', 'summary']
+        columns.extend(self.options.keys())
+        columns.extend(['owner', 'reporter'])
+        if 'resolution' in columns:
+            columns.remove('resolution')
 
+        ticket_list = [' || '.join([c.title() for c in columns])]
         for ticket in tickets:
             str_ticket = [str(ticket[0]), truncate_words(ticket[3]['summary'])]
             for f in columns[2:]:
@@ -561,13 +626,15 @@ class Ticket(object):
         try:
             tid = int(tid)
             ticket = trac.server.ticket.get(tid)
-            self.current = {'id': tid, '_ts': ticket[3]['_ts']}
+            self.current = {'id': tid, '_ts': ticket[3].get('_ts')}
             ticket_changelog = trac.server.ticket.changeLog(tid)
             self.current_component = ticket[3].get("component")
             actions = self.get_actions()
             self.list_attachments()
-        except:
+        except TypeError:
             return 'Please select a ticket'
+        except Exception as e:
+            return 'An error occured:\n\t{0}'.format(e)
 
         str_ticket = ["= Ticket Summary =", ""]
         for f in self.fields:
@@ -589,7 +656,7 @@ class Ticket(object):
 
         submission = [None, None]
         for change in ticket_changelog:
-            if not change[4]:
+            if not change[4] or change[2].startswith('_'):
                 continue
 
             my_time = get_time(change[0], True)
@@ -844,6 +911,9 @@ class Trac(object):
         if direction:
             tid = self.traverse_history('ticket', tid, direction)
 
+        if not self.ticket.fields:
+            self.ticket.get_fields()
+
         contents = {
             'ticket': self.ticket.get(tid),
             'comment': '',
@@ -1006,39 +1076,3 @@ class Trac(object):
 def trac_init():
     global trac
     trac = Trac()
-    trac.ticket.get_fields()
-
-    options = trac.ticket.options
-    types = options['type']
-    for t in types:
-        name = 'TTCreate{0}'.format(t.title())
-        meth = 'python trac.create_ticket("{0}", <q-args>)'.format(t)
-        vim.command('com! -nargs=+ {0} {1}'.format(name, meth))
-
-    compfun = """
-fun! Com{0}(A, L, P)
-    python trac.ticket.get_options('{1}')
-    return filter(split(g:tracOptions, '|'), 'v:val =~ "^' . a:A . '"')
-endfun
-"""
-
-    for f in trac.ticket.fields:
-        if f['type'] == 'time':
-            continue
-        fname = f['name']
-        mname = fname.title().replace('_', '')
-        if 'options' in f:
-            comp = '-complete=customlist,Com{0}'.format(mname)
-            vim.command(compfun.format(mname, fname))
-        else:
-            comp = ''
-        if f not in ('status', 'resolution'):
-            name = 'TTSet{0}'.format(mname)
-            meth = 'python trac.update_ticket("{0}", <f-args>)'.format(fname)
-            command = 'com! -nargs=? {0} {1} {2}'.format(comp, name, meth)
-            vim.command(command)
-        for s in ('filter', 'ignore'):
-            name = 'TT{0}{1}'.format(s.title(), mname)
-            meth = 'python trac.{0}_ticket("{1}", <f-args>)'.format(s, fname)
-            command = 'com! -nargs=? {0} {1} {2}'.format(comp, name, meth)
-            vim.command(command)

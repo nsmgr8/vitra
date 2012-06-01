@@ -29,7 +29,10 @@ endfun
 call s:vitraDefault('g:tracDefaultServer', '')
 call s:vitraDefault('g:tracDefaultComment', '')
 call s:vitraDefault('g:tracTempHtml', '/tmp/trac_wiki.html')
+
 call s:vitraDefault('g:tracTicketClause', 'status!=closed')
+call s:vitraDefault('g:tracTicketGroup', 'milestone')
+call s:vitraDefault('g:tracTicketOrder', 'priority')
 
 call s:vitraDefault('g:tracWikiStyle', 'full')
 call s:vitraDefault('g:tracWikiPreview', 1)
@@ -44,16 +47,8 @@ com! -nargs=0 TWInfo python print trac.wiki.get_page_info()
 com! -nargs=? -complete=customlist,ComTicket TTOpen python trac.ticket_view(<f-args>)
 
 com! -nargs=0 TTSetSummary python trac.update_ticket('summary')
-com! -nargs=0 TTUpdateDescription python trac.update_ticket('description')
+com! -nargs=0 TTSetDescription python trac.update_ticket('description')
 com! -nargs=0 TTAddComment python trac.update_ticket('comment')
-
-com! -nargs=? TTFilterOwner python trac.filter_ticket('owner', <f-args>)
-com! -nargs=0 TTFilterNoMilestone python trac.filter_ticket('milestone', '')
-com! -nargs=0 TTFilterNoOwner python trac.filter_ticket('owner', '')
-
-com! -nargs=? TTIgnoreOwner python trac.ignore_ticket('owner', <f-args>)
-com! -nargs=0 TTIgnoreNoMilestone python trac.ignore_ticket('milestone', '')
-com! -nargs=0 TTIgnoreNoOwner python trac.ignore_ticket('owner', '')
 
 com! -nargs=0 TTClearAllFilters python trac.filter_clear()
 com! -nargs=? -complete=customlist,ComSort TTClearFilter python trac.filter_clear(<f-args>)
