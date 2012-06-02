@@ -36,6 +36,8 @@ call s:vitraDefault('g:tracTicketOrder', 'priority')
 
 call s:vitraDefault('g:tracWikiStyle', 'full')
 call s:vitraDefault('g:tracWikiPreview', 1)
+call s:vitraDefault('g:tracWikiToC', 1)
+call s:vitraDefault('g:tracHideTracWiki', 1)
 call s:vitraDefault('g:tracTicketStyle', 'full')
 
 com! -nargs=? -complete=customlist,ComTracServers TracServer  python trac.set_server(<q-args>)

@@ -179,6 +179,7 @@ class WikiUI(UI):
         self.windows = {
             'wiki': WikiWindow(prefix='Wiki'),
             'preview': PreviewWindow(prefix='Wiki', name='Preview'),
+            'toc': WikiToCWindow(prefix='Wiki', name='Table\ of\ Contents'),
             'attachment': AttachmentWindow(prefix='Wiki', name='Attachment'),
         }
 
@@ -188,6 +189,9 @@ class WikiUI(UI):
                 vim.command("only")
         else:
             self.windows['wiki'].create("vertical belowright new")
+        if vim.eval('g:tracWikiToC') == '1':
+            self.windows['toc'].create('vertical leftabove new')
+        self.windows['wiki'].focus()
         if vim.eval('g:tracWikiPreview') == '1':
             w = self.windows['wiki'].width / 2
             if self.windows['preview'].create('vertical belowright new'):
@@ -221,11 +225,6 @@ class TicketUI(UI):
             self.windows['comment'].create("belowright new")
         self.focus('comment')
         self.windows['attachment'].create('belowright 3 new')
-
-
-class SearchUI(UI):
-    def __init__(self):
-        self.windows = {'search': SearchWindow(prefix='Search')}
 
 
 class WikiWindow(Window):
@@ -266,6 +265,37 @@ class PreviewWindow(NonEditableWindow):
         self.command('silent r!lynx -dump {0}'.format(file_name))
         self.command('setlocal nomodifiable')
         self.command('norm gg')
+
+
+class WikiToCWindow(NonEditableWindow):
+    def on_create(self):
+        nmaps = [
+            ('<cr>', ':python trac.wiki_view(vim.current.line)<cr>'),
+            ('<2-LeftMouse>', ':python trac.wiki_view(vim.current.line)<cr>'),
+            ('<Space>', ':python trac.wiki.html_view()<cr><cr><cr>'),
+        ]
+        for m in nmaps:
+            vim.command('nnoremap <buffer> {0} {1}'.format(*m))
+        vim.command('vertical resize 30')
+        vim.command('setlocal cursorline')
+        vim.command('setlocal linebreak')
+        vim.command('setlocal noswapfile')
+
+    def on_write(self):
+        if vim.eval('tracHideTracWiki') == '1':
+            vim.command('silent g/^Trac/d _')
+            vim.command('silent g/^Wiki/d _')
+            vim.command('silent g/^InterMapTxt$/d _')
+            vim.command('silent g/^InterWiki$/d _')
+            vim.command('silent g/^SandBox$/d _')
+            vim.command('silent g/^InterTrac$/d _')
+            vim.command('silent g/^TitleIndex$/d _')
+            vim.command('silent g/^RecentChanges$/d _')
+            vim.command('silent g/^CamelCase$/d _')
+
+        vim.command('sort')
+        vim.command('silent norm ggOWikiStart')
+        NonEditableWindow.on_write(self)
 
 
 class TicketListWindow(NonEditableWindow):
@@ -892,6 +922,8 @@ class Trac(object):
             'attachment': '\n'.join(self.wiki.attachments),
         }
         titles = {'wiki': page}
+        if vim.eval('g:tracWikiToC') == '1':
+            contents['toc'] = '\n'.join(self.wiki.get_all())
         self.uiwiki.update(contents, titles)
         if vim.eval('g:tracWikiPreview') == '1':
             self.uiwiki.windows['preview'].load(self.wiki.get_html())
