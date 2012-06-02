@@ -108,6 +108,7 @@ class Window(object):
             return False
         vim.command('silent {0} {1}'.format(method, self.buffer_name))
         vim.command("setlocal buftype=nofile")
+        vim.command('setlocal noswapfile')
         self.buffer = vim.current.buffer
         self.on_create()
         return True
@@ -210,7 +211,7 @@ class TicketUI(UI):
     def __init__(self):
         self.windows = {
             'ticket': TicketWindow(prefix='Ticket'),
-            'comment': TicketCommentWindow(prefix='Ticket', name='Comment'),
+            'comment': TicketCommentWindow(prefix='Ticket', name='Edit'),
             'list': TicketListWindow(prefix='Ticket', name='Listing'),
             'attachment': AttachmentWindow(prefix='Ticket', name='Attachment'),
         }
@@ -239,24 +240,16 @@ class WikiWindow(Window):
             ('<c-]>', ':python trac.wiki_view("<C-R><C-W>")<cr>'),
             ('wo', 'F:lvt<space>"zy:python trac.wiki_view("<C-R>z")<cr>'),
             ('w]', 'F:lvt]"zy:python trac.wiki_view("<C-R>z")<cr>'),
-            ('wb', ':python trac.wiki_view(direction=-1)<cr>'),
-            ('wf', ':python trac.wiki_view(direction=1)<cr>'),
-            ('ws', ':python print trac.history["wiki"]<cr>'),
             ('<2-LeftMouse>', ':python trac.wiki_view("<C-R><C-W>")<cr>'),
             (':w<cr>', ':TWSave<cr>'),
         ]
         for m in nmaps:
             vim.command('nnoremap <buffer> {0} {1}'.format(*m))
         vim.command('setlocal syntax=tracwiki')
-        vim.command('setlocal linebreak')
-        vim.command('setlocal noswapfile')
 
 
 class PreviewWindow(NonEditableWindow):
     def on_create(self):
-        vim.command('setlocal linebreak')
-        vim.command('setlocal noswapfile')
-        vim.command('setlocal syntax=text')
         vim.command('syn match Keyword /\[\d*\]\w*/ contains=Ignore')
         vim.command('syn match Ignore /\[\d*\]/ contained')
         vim.command('nnoremap <buffer> <tab> /\\d*\\]\\w*<cr>:nohl<cr>')
@@ -283,9 +276,6 @@ class WikiToCWindow(NonEditableWindow):
         for m in nmaps:
             vim.command('nnoremap <buffer> {0} {1}'.format(*m))
         vim.command('vertical resize 30')
-        vim.command('setlocal cursorline')
-        vim.command('setlocal linebreak')
-        vim.command('setlocal noswapfile')
 
     def on_write(self):
         if vim.eval('tracHideTracWiki') == '1':
@@ -307,14 +297,9 @@ class WikiToCWindow(NonEditableWindow):
 class TicketListWindow(NonEditableWindow):
     def on_create(self):
         vim.command('nnoremap <buffer> <cr> '
-                    ':python trac.ticket_view("SUMMARYLINE")<cr>')
+                    ':python trac.ticket_view(listing=True)<cr>')
         vim.command('nnoremap <buffer> <2-LeftMouse> '
-                    ':python trac.ticket_view("SUMMARYLINE")<cr>')
-        vim.command('setlocal cursorline')
-        vim.command('setlocal syntax=text')
-        vim.command('setlocal nowrap')
-        vim.command('setlocal noswapfile')
-        vim.command('setlocal colorcolumn=0')
+                    ':python trac.ticket_view(listing=True)<cr>')
 
     def on_write(self):
         try:
@@ -346,14 +331,6 @@ class TicketListWindow(NonEditableWindow):
 
 class TicketWindow(NonEditableWindow):
     def on_create(self):
-        vim.command('nnoremap <buffer> wb '
-                    ':python trac.ticket_view(direction=-1)<cr>')
-        vim.command('nnoremap <buffer> wf '
-                    ':python trac.ticket_view(direction=1)<cr>')
-        vim.command('nnoremap <buffer> ws '
-                    ':python print trac.history["ticket"]<cr>')
-        vim.command('setlocal noswapfile')
-        vim.command('setlocal textwidth=100')
         vim.command('setlocal syntax=tracwiki')
 
     def on_write(self):
@@ -365,7 +342,6 @@ class TicketWindow(NonEditableWindow):
 class TicketCommentWindow(Window):
     def on_create(self):
         vim.command('setlocal syntax=tracwiki')
-        vim.command('setlocal noswapfile')
 
 
 class SearchWindow(NonEditableWindow):
@@ -374,10 +350,7 @@ class SearchWindow(NonEditableWindow):
                     ':python trac.wiki_view("<c-r><c-w>")<cr>')
         vim.command('nnoremap <buffer> <cr> '
                     ':python trac.open_line()<cr>')
-        vim.command('setlocal syntax=text')
-        vim.command('setlocal foldmethod=indent')
-        vim.command('setlocal linebreak')
-        vim.command('setlocal noswapfile')
+        vim.command('setlocal syntax=tracwiki')
 
     def on_write(self):
         NonEditableWindow.on_write(self)
@@ -391,10 +364,8 @@ class TimelineWindow(NonEditableWindow):
         vim.command('nnoremap <buffer> <c-]> '
                     ':python trac.wiki_view("<c-r><c-w>")<cr>')
         vim.command('setlocal syntax=tracwiki')
-        vim.command('setlocal linebreak')
         vim.command('nnoremap <buffer> <cr> '
                     ':python trac.open_line()<cr>')
-        vim.command('setlocal noswapfile')
 
     def on_write(self):
         NonEditableWindow.on_write(self)
@@ -415,11 +386,8 @@ class ServerWindow(NonEditableWindow):
 
 class AttachmentWindow(NonEditableWindow):
     def on_create(self):
-        com = 'trac.get_attachment("CURRENTLINE")'
-        vim.command('nnoremap <buffer> <cr> :python {0}<cr>'.format(com))
-        vim.command('setlocal cursorline')
-        vim.command('setlocal linebreak')
-        vim.command('setlocal noswapfile')
+        vim.command('nnoremap <buffer> <cr> '
+                    ':python trac.get_attachment(vim.current.line)')
 
 
 class ChangesetWindow(NonEditableWindow):
@@ -647,15 +615,12 @@ class Ticket(object):
         self.total_pages = int(tp)
         return total
 
-    def get_all(self, cached=False):
-        if cached and self.tickets:
-            tickets = self.tickets
-        else:
-            multicall = xmlrpclib.MultiCall(trac.server)
-            for ticket in trac.server.ticket.query(self.query_string()):
-                multicall.ticket.get(ticket)
-            tickets = multicall()
-            self.tickets = tickets
+    def get_all(self):
+        multicall = xmlrpclib.MultiCall(trac.server)
+        for ticket in trac.server.ticket.query(self.query_string()):
+            multicall.ticket.get(ticket)
+        tickets = multicall()
+        self.tickets = tickets
 
         columns = ['#', 'summary']
         columns.extend(self.options.keys())
@@ -926,10 +891,10 @@ class Trac(object):
         auth = url.get('auth', '').split(':')
 
         if len(auth) == 2:
-            url = '{scheme}://{auth}@{server}{rpc_path}'.format(
-                        **self.server_url)
+            url = '{scheme}://{auth}@{server}{rpc_path}'
         else:
-            url = '{scheme}://{server}{rpc_path}'.format(**self.server_url)
+            url = '{scheme}://{server}{rpc_path}'
+        url = url.format(**self.server_url)
         if len(auth) == 3:
             transport = HTTPDigestTransport(scheme, *auth)
             self.server = xmlrpclib.ServerProxy(url, transport=transport)
@@ -974,8 +939,8 @@ class Trac(object):
         self.set_history('wiki', page)
         self.uiwiki.focus('wiki')
 
-    def ticket_view(self, tid=False, cached=False, direction=None):
-        if tid == 'SUMMARYLINE':
+    def ticket_view(self, tid=False, direction=None, listing=False):
+        if listing:
             m = re.search(r'^\s*([0123456789]+)', vim.current.line)
             try:
                 tid = int(m.group(0))
@@ -997,7 +962,7 @@ class Trac(object):
         }
         titles = {'ticket': '\#{0}'.format(tid)}
         if vim.eval('g:tracTicketStyle') == 'full':
-            contents['list'] = self.ticket.get_all(cached)
+            contents['list'] = self.ticket.get_all()
             titles['list'] = 'Page\ {0}\ of\ {1}'.format(self.ticket.page,
                                                     self.ticket.total_pages)
         self.uiticket.create()
@@ -1050,7 +1015,6 @@ class Trac(object):
             self.ticket_view()
         except:
             self.ticket.page -= direction
-            self.ticket_view()
             vim.command("echoerr 'cannot go beyond current page'")
 
     def create_ticket(self, type_=False, summary='new ticket'):
@@ -1116,8 +1080,6 @@ class Trac(object):
             return
 
     def get_attachment(self, file):
-        if file == 'CURRENTLINE':
-            file = vim.current.line
         bname = os.path.basename(vim.current.buffer.name)
         if bname.startswith('Wiki: '):
             print "Retrieving attachment from wiki",
@@ -1148,6 +1110,14 @@ class Trac(object):
             fp.write(html)
 
         webbrowser.open('file://{0}'.format(file_name))
+
+    def back(self, forward=False):
+        direction = 1 if forward else -1
+        bname = os.path.basename(vim.current.buffer.name)
+        if bname.startswith('Wiki: '):
+            self.wiki_view(direction=direction)
+        if bname.startswith('Ticket: '):
+            self.ticket_view(direction=direction)
 
 
 def trac_init():

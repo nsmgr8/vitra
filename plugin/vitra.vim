@@ -27,7 +27,7 @@ fun s:vitraDefault(name, default)
 endfun
 
 call s:vitraDefault('g:tracDefaultServer', '')
-call s:vitraDefault('g:tracDefaultComment', '')
+call s:vitraDefault('g:tracDefaultComment', 'Updated from vitra')
 call s:vitraDefault('g:tracTempHtml', '/tmp/trac_wiki.html')
 
 call s:vitraDefault('g:tracTicketClause', 'status!=closed')
@@ -63,7 +63,7 @@ com! -nargs=? -complete=customlist,ComSort TTGroupBy python trac.sort_ticket('gr
 com! -nargs=0 TTNextPage python trac.ticket_paginate()
 com! -nargs=0 TTPreviousPage python trac.ticket_paginate(-1)
 com! -nargs=0 TTFirstPage python trac.ticket.page = 1; trac.ticket_view()
-com! -nargs=0 TTNumberTickets python print trac.ticket.number_tickets
+com! -nargs=0 TTLastPage python trac.ticket.page = trac.ticket.total_pages; trac.ticket_view()
 
 com! -nargs=+ -complete=customlist,ComAction TTAction python trac.act_ticket(<q-args>)
 
@@ -73,6 +73,8 @@ com! -nargs=0 TTimelineOpen python trac.timeline_view()
 
 com! -nargs=? -complete=file TAddAttachment python trac.add_attachment(<f-args>)
 com! -nargs=0 TPreview python trac.preview()
+com! -nargs=0 TBack python trac.back()
+com! -nargs=0 TForward python trac.back(True)
 
 fun ComTracServers(A, L, P)
     return filter(keys(g:tracServerList), 'v:val =~ "^' . a:A . '"')
