@@ -488,7 +488,7 @@ class Wiki(object):
             comment = trac.default_comment
         try:
             trac.server.wiki.putPage(self.current.get('name'),
-                trac.uiwiki.windows['wiki'].content, {"comment": comment})
+                trac.wiki_content, {"comment": comment})
         except xmlrpclib.Fault as e:
             print 'Not committing the changes.'
             print 'Error: {0}'.format(e.faultString)
@@ -631,7 +631,20 @@ class Ticket(object):
 
     @property
     def number_tickets(self):
-        return len(trac.server.ticket.query(self.query_string(True)))
+        total = len(trac.server.ticket.query(self.query_string(True)))
+        max_regex = re.compile('max=(\d*)')
+        res = max_regex.search(self.query_string())
+        if res:
+            tickets_per_page = res.groups()[0]
+            if tickets_per_page == 0:
+                tickets_per_page = total
+        else:
+            tickets_per_page = 100
+        tp = total / float(tickets_per_page)
+        if int(tp) < tp:
+            tp += 1
+        self.total_pages = int(tp)
+        return total
 
     def get_all(self, cached=False):
         if cached and self.tickets:
@@ -666,6 +679,8 @@ class Ticket(object):
                                             vim.eval('g:tracTicketClause')))
         ticket_list.append(' || {0:>15}: {1}'.format('Number of tickets',
                                                      self.number_tickets))
+        ticket_list.append(' || {0:>15}: {1} of {2}'.format('Page', self.page,
+                                                            self.total_pages))
         ticket_list.append('')
 
         return "\n".join(ticket_list)
@@ -737,7 +752,8 @@ class Ticket(object):
 
     def update(self, comment, attribs={}, notify=False):
         try:
-            attribs['_ts'] = self.current['_ts']
+            if self.current.get('_ts'):
+                attribs['_ts'] = self.current['_ts']
             return trac.server.ticket.update(self.current['id'], comment,
                                              attribs, notify)
         except xmlrpclib.Fault as e:
@@ -808,8 +824,7 @@ class Ticket(object):
     def get_options(self, key='type', type_='attrib'):
         options = {
             'attrib': self.options.get(key, []),
-            'field': ['component', 'milestone', 'owner', 'priority',
-                      'reporter', 'status', 'type', 'version'],
+            'field': self.options.keys(),
             'action': self.actions,
             'history': map(str, trac.history['ticket']),
         }.get(type_, [])
@@ -887,6 +902,14 @@ class Trac(object):
         self.default_comment = comment
         self.history = {'wiki': [], 'ticket': []}
 
+    @property
+    def wiki_content(self):
+        return self.uiwiki.windows['wiki'].content
+
+    @property
+    def ticket_content(self):
+        return self.uiticket.windows['comment'].content
+
     def set_server(self, server):
         if not server:
             server = self.server_list.keys()[0]
@@ -901,12 +924,12 @@ class Trac(object):
         scheme = url.get('scheme', 'http')
         auth = url.get('auth', '').split(':')
 
-        if len(auth) == 2:  # Basic authentication
+        if len(auth) == 2:
             url = '{scheme}://{auth}@{server}{rpc_path}'.format(
                         **self.server_url)
-        else:   # Anonymous or Digest authentication
+        else:
             url = '{scheme}://{server}{rpc_path}'.format(**self.server_url)
-        if len(auth) == 3:  # Digest authentication
+        if len(auth) == 3:
             transport = HTTPDigestTransport(scheme, *auth)
             self.server = xmlrpclib.ServerProxy(url, transport=transport)
         else:
@@ -914,6 +937,8 @@ class Trac(object):
 
         self.wiki.initialise()
         self.ticket.initialise()
+        self.uiwiki.destroy()
+        self.uiticket.destroy()
 
     def set_history(self, type_, page):
         if page and page not in self.history[type_]:
@@ -972,7 +997,8 @@ class Trac(object):
         titles = {'ticket': '\#{0}'.format(tid)}
         if vim.eval('g:tracTicketStyle') == 'full':
             contents['list'] = self.ticket.get_all(cached)
-            titles['list'] = 'Page\ {0}'.format(self.ticket.page)
+            titles['list'] = 'Page\ {0}\ of\ {1}'.format(self.ticket.page,
+                                                    self.ticket.total_pages)
         self.uiticket.create()
         self.uiticket.update(contents, titles)
         if tid:
@@ -1027,7 +1053,7 @@ class Trac(object):
             print 'cannot go beyond current page'
 
     def create_ticket(self, type_=False, summary='new ticket'):
-        description = self.uiticket.windows['comment'].content
+        description = self.ticket_content
         if not description:
             print "Description is empty. Ticket needs more info"
             return
@@ -1041,7 +1067,7 @@ class Trac(object):
         self.ticket_view(tid)
 
     def update_ticket(self, option, value=None):
-        text = self.uiticket.windows['comment'].content
+        text = self.ticket_content
         if option in ('summary', 'description'):
             value = text
             comment = ''
@@ -1059,7 +1085,7 @@ class Trac(object):
             self.ticket_view()
 
     def act_ticket(self, action):
-        if self.ticket.act(action, self.uiticket.windows['comment'].content):
+        if self.ticket.act(action, self.ticket_content):
             self.ticket_view()
 
     def open_line(self):
@@ -1080,7 +1106,7 @@ class Trac(object):
             print 'Done.'
         elif bname.startswith('Ticket: '):
             print "Adding attachment to ticket", self.ticket.current.get('id')
-            comment = self.uiticket.windows['comment'].content
+            comment = self.ticket_content
             self.ticket.add_attachment(file, comment)
             self.ticket_view()
             print 'Done.'
@@ -1108,9 +1134,9 @@ class Trac(object):
     def preview(self):
         bname = os.path.basename(vim.current.buffer.name)
         if bname.startswith('Wiki: '):
-            wikitext = self.uiwiki.windows['wiki'].content
+            wikitext = self.wiki_content
         elif bname.startswith('Ticket: '):
-            wikitext = self.uiticket.windows['comment'].content
+            wikitext = self.ticket_content
         else:
             print "You need an active ticket or wiki open!"
             return
