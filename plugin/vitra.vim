@@ -43,10 +43,12 @@ call s:vitraDefault('g:tracTicketStyle', 'full')
 com! -nargs=? -complete=customlist,ComTracServers TracServer  python trac.set_server(<q-args>)
 
 com! -nargs=? -complete=customlist,ComWiki TWOpen python trac.wiki_view(<f-args>)
+com! -nargs=0 TWClose python trac.uiwiki.destroy()
 com! -nargs=* TWSave python trac.wiki.save(<q-args>)
 com! -nargs=0 TWInfo python print trac.wiki.get_page_info()
 
 com! -nargs=? -complete=customlist,ComTicket TTOpen python trac.ticket_view(<f-args>)
+com! -nargs=0 TTClose python trac.uiticket.destroy()
 
 com! -nargs=0 TTSetSummary python trac.update_ticket('summary')
 com! -nargs=0 TTSetDescription python trac.update_ticket('description')

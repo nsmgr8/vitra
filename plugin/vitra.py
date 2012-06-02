@@ -39,7 +39,7 @@ def save_buffer(buffer, file):
     if os.path.exists(file_name):
         print "Will not overwrite existing file {0}".format(file_name)
     else:
-        with codecs.open(file_name, 'w', 'utf-8') as fp:
+        with open(file_name, 'wb') as fp:
             fp.write(buffer)
 
 
@@ -193,8 +193,13 @@ class WikiUI(UI):
             self.windows['toc'].create('vertical leftabove new')
         self.windows['wiki'].focus()
         if vim.eval('g:tracWikiPreview') == '1':
-            w = self.windows['wiki'].width / 2
-            if self.windows['preview'].create('vertical belowright new'):
+            w, h = self.windows['wiki'].size
+            w = w / 2
+            if w > h:
+                position = 'vertical belowright new'
+            else:
+                position = 'aboveleft new'
+            if self.windows['preview'].create(position) and w > h:
                 self.windows['preview'].resize(width=min(w, 85))
         self.windows['wiki'].focus()
         self.windows['attachment'].create('belowright 3 new')
@@ -445,6 +450,7 @@ class Wiki(object):
         try:
             name = name.strip()
             self.attachments = []
+            self.current = {'name': name}
             if revision is not None:
                 text = trac.server.wiki.getPage(name, revision)
             else:
@@ -461,19 +467,31 @@ class Wiki(object):
     def get_html(self):
         if not self.current.get('name'):
             return ''
-        return trac.server.wiki.getPageHTML(self.current.get('name'))
+        try:
+            return trac.server.wiki.getPageHTML(self.current.get('name'))
+        except:
+            return ''
 
     def save(self, comment):
-        info = self.get_page_info()
-        if (get_time(info['lastModified']) >
-                get_time(self.current.get('lastModified'))):
-            print 'This page has been modified in another session',
-            print 'Not commiting the changes.'
-            return
+        try:
+            info = self.get_page_info()
+            if (get_time(info['lastModified']) >
+                    get_time(self.current.get('lastModified'))):
+                print 'This page has been modified in another session',
+                print 'Not commiting the changes.'
+                return
+        except:
+            if not confirm('Cannot confirm last modification time. '
+                           'Do you want to continue to save?'):
+                return
         if not comment:
             comment = trac.default_comment
-        trac.server.wiki.putPage(self.current.get('name'),
+        try:
+            trac.server.wiki.putPage(self.current.get('name'),
                 trac.uiwiki.windows['wiki'].content, {"comment": comment})
+        except xmlrpclib.Fault as e:
+            print 'Not committing the changes.'
+            print 'Error: {0}'.format(e.faultString)
 
     def get_page_info(self, page=None):
         try:
@@ -666,7 +684,7 @@ class Ticket(object):
         except Exception as e:
             return 'An error occured:\n\t{0}'.format(e)
 
-        str_ticket = ["= Ticket Summary =", ""]
+        str_ticket = ["= Ticket #{0} =".format(tid), ""]
         for f in self.fields:
             if f['name'] == 'description':
                 continue
@@ -694,9 +712,9 @@ class Ticket(object):
             if submission != new_submission:
                 str_ticket.append("")
                 str_ticket.append('== {0} ({1}) =='.format(my_time, change[1]))
+                str_ticket.append("")
                 submission = new_submission
             if change[2] == 'comment':
-                str_ticket.append(' * {0}:'.format(change[2]))
                 str_ticket.append(change[4])
             elif change[2] in ('summary', 'description'):
                 str_ticket.append("''{0}'' changed".format(change[2]))
