@@ -37,7 +37,8 @@ def get_time(value, format=False):
 def save_buffer(buffer, file):
     file_name = os.path.basename(file)
     if os.path.exists(file_name):
-        print "Will not overwrite existing file {0}".format(file_name)
+        vim.command('echoerr "Will not overwrite existing file {0}"'.format(
+                        file_name))
     else:
         with open(file_name, 'wb') as fp:
             fp.write(buffer)
@@ -477,8 +478,8 @@ class Wiki(object):
             info = self.get_page_info()
             if (get_time(info['lastModified']) >
                     get_time(self.current.get('lastModified'))):
-                print 'This page has been modified in another session',
-                print 'Not commiting the changes.'
+                vim.command("echoerr 'This page has been modified in another "
+                            "session. Not commiting the changes.'")
                 return
         except:
             if not confirm('Cannot confirm last modification time. '
@@ -490,8 +491,8 @@ class Wiki(object):
             trac.server.wiki.putPage(self.current.get('name'),
                 trac.wiki_content, {"comment": comment})
         except xmlrpclib.Fault as e:
-            print 'Not committing the changes.'
-            print 'Error: {0}'.format(e.faultString)
+            vim.command('echoerr "Not committing the changes."')
+            vim.command('echoerr "Error: {0}"'.format(e.faultString))
 
     def get_page_info(self, page=None):
         try:
@@ -500,7 +501,7 @@ class Wiki(object):
             info = trac.server.wiki.getPageInfo(page)
             return info
         except:
-            print 'Cannot get page info'
+            vim.command('echoerr "Cannot get page info"')
             return {}
 
     def add_attachment(self, file):
@@ -757,8 +758,8 @@ class Ticket(object):
             return trac.server.ticket.update(self.current['id'], comment,
                                              attribs, notify)
         except xmlrpclib.Fault as e:
-            print 'Not committing the changes.'
-            print 'Error: {0}'.format(e.faultString)
+            vim.command("echoerr 'Not committing the changes.'")
+            vim.command('echoerr "Error: {0}"'.format(e.faultString))
         return None
 
     def create(self, description, summary, attributes={}):
@@ -798,7 +799,7 @@ class Ticket(object):
         try:
             name, options = action[0], action[1:]
         except IndexError:
-            print 'No action requested'
+            vim.command("echoerr 'No action requested'")
             return
         actions = self.get_actions()
         action = None
@@ -807,7 +808,7 @@ class Ticket(object):
                 action = a
                 break
         else:
-            print 'action is not valid'
+            vim.command("echoerr 'action is not valid'")
             return
         attribs = {'action': name}
         for i, opt in enumerate(options):
@@ -817,7 +818,7 @@ class Ticket(object):
             elif opt == ac[1]:
                 attribs[ac[0]] = opt
             else:
-                print 'invalid option'
+                vim.command("echoerr 'invalid option'")
                 return
         return self.update(comment, attribs)
 
@@ -854,7 +855,7 @@ def timeline(server):
     try:
         import feedparser
     except ImportError:
-        print "Please install feedparser.py!"
+        vim.command('echoerr "Please install feedparser.py!"')
         return
 
     query = 'ticket=on&changeset=on&wiki=on&max=50&daysback=90&format=rss'
@@ -979,7 +980,7 @@ class Trac(object):
             try:
                 tid = int(m.group(0))
             except:
-                print 'no ticket selected'
+                vim.command("echoerr 'no ticket selected'")
                 return
 
         tid = int(tid) if tid else self.ticket.current.get('id')
@@ -1050,7 +1051,7 @@ class Trac(object):
         except:
             self.ticket.page -= direction
             self.ticket_view()
-            print 'cannot go beyond current page'
+            vim.command("echoerr 'cannot go beyond current page'")
 
     def create_ticket(self, type_=False, summary='new ticket'):
         description = self.ticket_content
