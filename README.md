@@ -1,4 +1,4 @@
-# Vitra (Trac client UI for ViM)
+# `Vitra` (Trac client UI for ViM)
 
 `Vitra` is a [Trac][Trac] client UI for the wonderful universal editor
 [Vim][Vim]. It talks to a trac server via XML-RPC.  It provides a fancy UI for
@@ -173,6 +173,9 @@ attachment window. Run __TAddAttachment__ similarly to add a file and press
 The UI also provides a preview which shows a stripped out html output of the
 current wiki page.
 
+__TBack__ and __TForward__ also traverses the history of opened wiki pages as
+well.
+
 __TWClose__ can close the wiki UI. Also, __TWInfo__ can print useful
 information about the current page. One can locally preview the HTML of the
 current wiki page content by __TPreview__.
@@ -216,7 +219,7 @@ The following options are available for `Vitra`:
 # Inspiration
 
 This plugin is inspired by the the other trac vim integration plugin
-[Trac.vim][vimtrac] available for years.
+[`Trac.vim`][vimtrac] available for years.
 
 # License
 
