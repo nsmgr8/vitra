@@ -270,7 +270,6 @@ class WikiToCWindow(NonEditableWindow):
         nmaps = [
             ('<cr>', ':python trac.wiki_view(vim.current.line)<cr>'),
             ('<2-LeftMouse>', ':python trac.wiki_view(vim.current.line)<cr>'),
-            ('<Space>', ':python trac.wiki.html_view()<cr><cr><cr>'),
         ]
         for m in nmaps:
             vim.command('nnoremap <buffer> {0} {1}'.format(*m))
@@ -637,9 +636,9 @@ class Ticket(object):
 
         ticket_list.append('')
         for k, v in self.sorter.iteritems():
-            ticket_list.append(' || {0:>15}: {1}'.format(k.title(), v))
+            ticket_list.append(' || {0:>15}: {1}'.format(self.get_label(k), v))
         for k, v in self.filters.iteritems():
-            ticket_list.append(' || {0:>15}: {1}'.format(k.title(), v))
+            ticket_list.append(' || {0:>15}: {1}'.format(self.get_label(k), v))
 
         ticket_list.append(' || {0:>15}: {1}'.format('Other',
                                             vim.eval('g:tracTicketClause')))
@@ -801,7 +800,7 @@ def search(search_pattern):
     a_search = trac.server.search.performSearch(search_pattern)
     result = [
         "Results for {0}".format(search_pattern),
-        "(Hit <enter> or <space> on a line containing :>>)",
+        "(Hit <enter> on a line containing :>>)",
         "",
     ]
     for search in a_search:
@@ -827,7 +826,7 @@ def timeline(server):
     query = 'ticket=on&changeset=on&wiki=on&max=50&daysback=90&format=rss'
     feed = '{scheme}://{server}/timeline?{q}'.format(q=query, **server)
     d = feedparser.parse(feed)
-    str_feed = ["Hit <enter> or <space> on a line containing :>>", ""]
+    str_feed = ["Hit <enter> on a line containing :>>", ""]
     for item in d['items']:
         str_feed.append(strftime("%Y-%m-%d %H:%M:%S", item.updated_parsed))
 

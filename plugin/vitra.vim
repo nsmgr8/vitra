@@ -27,7 +27,7 @@ fun s:vitraDefault(name, default)
 endfun
 
 call s:vitraDefault('g:tracDefaultServer', '')
-call s:vitraDefault('g:tracDefaultComment', 'Updated from vitra')
+call s:vitraDefault('g:tracDefaultComment', 'Updated from Vitra')
 call s:vitraDefault('g:tracTempHtml', '/tmp/trac_wiki.html')
 
 call s:vitraDefault('g:tracTicketClause', 'status!=closed')
