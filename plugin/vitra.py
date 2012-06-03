@@ -1,14 +1,13 @@
 # -*- encoding: utf-8 -*-
 
-import os
-import vim
-import xmlrpclib
-import re
 import codecs
 import datetime
-from time import strftime
+import os
+import re
 import urllib2
+import vim
 import webbrowser
+import xmlrpclib
 
 
 trac = None
@@ -211,7 +210,7 @@ class TicketUI(UI):
     def __init__(self):
         self.windows = {
             'ticket': TicketWindow(prefix='Ticket'),
-            'comment': TicketCommentWindow(prefix='Ticket', name='Edit'),
+            'edit': TicketCommentWindow(prefix='Ticket', name='Edit'),
             'list': TicketListWindow(prefix='Ticket', name='Listing'),
             'attachment': AttachmentWindow(prefix='Ticket', name='Attachment'),
         }
@@ -225,12 +224,12 @@ class TicketUI(UI):
             if self.windows['list'].create('leftabove new'):
                 self.windows['list'].resize(height=min(h, 20))
             self.focus('ticket')
-            if self.windows['comment'].create('vertical belowright new'):
-                self.windows['comment'].resize(width=min(w, 85))
+            if self.windows['edit'].create('vertical belowright new'):
+                self.windows['edit'].resize(width=min(w, 85))
         else:
             self.windows['ticket'].create("belowright new")
-            self.windows['comment'].create("belowright new")
-        self.focus('comment')
+            self.windows['edit'].create("belowright new")
+        self.focus('edit')
         self.windows['attachment'].create('belowright 3 new')
 
 
@@ -356,7 +355,6 @@ class SearchWindow(NonEditableWindow):
         NonEditableWindow.on_write(self)
         vim.command('syn match Keyword /\w*:>> .*$/ contains=Title')
         vim.command('syn match Title /\w*:>>/ contained')
-        vim.command('syn match SpecialKey /^-*$/')
 
 
 class TimelineWindow(NonEditableWindow):
@@ -371,7 +369,9 @@ class TimelineWindow(NonEditableWindow):
         NonEditableWindow.on_write(self)
         vim.command('syn match Keyword /\w*:>> .*$/ contains=Title')
         vim.command('syn match Title /\w*:>>/ contained')
-        vim.command('syn match SpecialKey /^-*$/')
+        vim.command('syn match Identifier /^[0-9\-]\{10\}\s.*$/ '
+                    'contains=Statement')
+        vim.command('syn match Statement /\d\{2\}:\d\{2\}:\d\{2\}$/')
 
 
 class ServerWindow(NonEditableWindow):
@@ -819,6 +819,7 @@ def search(search_pattern):
 def timeline(server):
     try:
         import feedparser
+        from time import strftime
     except ImportError:
         vim.command('echoerr "Please install feedparser.py!"')
         return
@@ -830,14 +831,13 @@ def timeline(server):
     for item in d['items']:
         str_feed.append(strftime("%Y-%m-%d %H:%M:%S", item.updated_parsed))
 
-        m = re.match(r"^Ticket #(\d+) (.*)$", item.title)
-        if m:
+        if 'ticket' in item.category:
+            m = re.match(r"^Ticket #(\d+)", item.title)
             str_feed.append("Ticket:>> {0}".format(m.group(1)))
-        m = re.match(r"^([\w\d]+) (edited by .*)$", item.title)
-        if m:
-            str_feed.append("Wiki:>> {0}".format(m.group(1)))
-        m = re.match(r"^Changeset \[([\w]+)\]: (.*)$", item.title)
-        if m:
+        if 'wiki' in item.category:
+            str_feed.append("Wiki:>> {0}".format(item.title.split(' ', 1)[0]))
+        if 'changeset' in item.category:
+            m = re.match(r"^Changeset \[([\w]+)\]:", item.title)
             str_feed.append("Changeset:>> {0}".format(m.group(1)))
 
         str_feed.append(item.title)
@@ -861,11 +861,8 @@ class Trac(object):
         self.changeset_window = ChangesetWindow(prefix='Changeset')
 
         self.server_list = vim.eval('g:tracServerList')
-        default_server = vim.eval('g:tracDefaultServer')
-        comment = vim.eval('g:tracDefaultComment')
-
-        self.set_server(default_server)
-        self.default_comment = comment
+        self.default_comment = vim.eval('g:tracDefaultComment')
+        self.set_server(vim.eval('g:tracDefaultServer'))
         self.history = {'wiki': [], 'ticket': []}
 
     @property
@@ -874,7 +871,7 @@ class Trac(object):
 
     @property
     def ticket_content(self):
-        return self.uiticket.windows['comment'].content
+        return self.uiticket.windows['edit'].content
 
     def set_server(self, server):
         if not server:
@@ -911,8 +908,8 @@ class Trac(object):
             self.history[type_].append(page)
 
     def traverse_history(self, type_, current, direction):
-        if not self.history.get(type_):
-            return None
+        if not direction or not self.history.get(type_):
+            return current
         loc = self.history[type_].index(current)
         try:
             page = self.history[type_][loc + direction]
@@ -922,10 +919,8 @@ class Trac(object):
 
     def wiki_view(self, page=False, direction=None):
         page = page if page else self.wiki.current.get('name', 'WikiStart')
-        if direction:
-            page = self.traverse_history('wiki', page, direction)
+        page = self.traverse_history('wiki', page, direction)
 
-        self.uiwiki.create()
         contents = {
             'wiki': self.wiki.get(page),
             'attachment': '\n'.join(self.wiki.attachments),
@@ -933,15 +928,17 @@ class Trac(object):
         titles = {'wiki': page}
         if vim.eval('g:tracWikiToC') == '1':
             contents['toc'] = '\n'.join(self.wiki.get_all())
+
+        self.uiwiki.create()
         self.uiwiki.update(contents, titles)
         if vim.eval('g:tracWikiPreview') == '1':
             self.uiwiki.windows['preview'].load(self.wiki.get_html())
-        self.set_history('wiki', page)
         self.uiwiki.focus('wiki')
+        self.set_history('wiki', page)
 
     def ticket_view(self, tid=False, direction=None, listing=False):
         if listing:
-            m = re.search(r'^\s*([0123456789]+)', vim.current.line)
+            m = re.search(r'^\s*(\d+)', vim.current.line)
             try:
                 tid = int(m.group(0))
             except:
@@ -949,15 +946,14 @@ class Trac(object):
                 return
 
         tid = int(tid) if tid else self.ticket.current.get('id')
-        if direction:
-            tid = self.traverse_history('ticket', tid, direction)
+        tid = self.traverse_history('ticket', tid, direction)
 
         if not self.ticket.fields:
             self.ticket.get_fields()
 
         contents = {
             'ticket': self.ticket.get(tid),
-            'comment': '',
+            'edit': '',
             'attachment': '\n'.join(self.ticket.attachments),
         }
         titles = {'ticket': '\#{0}'.format(tid)}
@@ -973,7 +969,7 @@ class Trac(object):
 
     def search_view(self, keyword):
         self.search_window.write(search(keyword))
-        self.search_window.set_name(keyword)
+        self.search_window.set_name(keyword.replace(' ', '_'))
 
     def timeline_view(self):
         self.timeline_window.write(timeline(self.server_url))
@@ -1056,8 +1052,10 @@ class Trac(object):
     def open_line(self):
         line = vim.current.line
         if 'Ticket:>>' in line:
+            vim.command('tabnew')
             self.ticket_view(line.replace('Ticket:>> ', ''))
         elif 'Wiki:>>' in line:
+            vim.command('tabnew')
             self.wiki_view(line.replace('Wiki:>> ', ''))
         elif 'Changeset:>>' in line:
             self.changeset_view(line.replace('Changeset:>> ', ''))
@@ -1077,7 +1075,6 @@ class Trac(object):
             print 'Done.'
         else:
             print "You need an active ticket or wiki open!"
-            return
 
     def get_attachment(self, file):
         bname = os.path.basename(vim.current.buffer.name)
