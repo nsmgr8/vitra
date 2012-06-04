@@ -43,6 +43,11 @@ def save_buffer(buffer, file):
             fp.write(buffer)
 
 
+def map_commands(nmaps):
+    for m in nmaps:
+        vim.command('nnoremap <buffer> {0} {1}'.format(*m))
+
+
 class HTTPDigestTransport(xmlrpclib.SafeTransport):
     def __init__(self, scheme, username, password, realm):
         self.username = username
@@ -157,12 +162,12 @@ class UI(object):
     windows = {}
 
     def create(self):
-        for window in self.windows:
-            self.windows[window].create()
+        for window in self.windows.values():
+            window.create()
 
     def destroy(self):
-        for window in self.windows:
-            self.windows[window].destroy()
+        for window in self.windows.values():
+            window.destroy()
 
     def update(self, contents, titles=None):
         for window in contents:
@@ -235,15 +240,14 @@ class TicketUI(UI):
 
 class WikiWindow(Window):
     def on_create(self):
-        nmaps = [
+        map_commands([
             ('<c-]>', ':python trac.wiki_view("<C-R><C-W>")<cr>'),
             ('wo', 'F:lvt<space>"zy:python trac.wiki_view("<C-R>z")<cr>'),
             ('w]', 'F:lvt]"zy:python trac.wiki_view("<C-R>z")<cr>'),
             ('<2-LeftMouse>', ':python trac.wiki_view("<C-R><C-W>")<cr>'),
             (':w<cr>', ':TWSave<cr>'),
-        ]
-        for m in nmaps:
-            vim.command('nnoremap <buffer> {0} {1}'.format(*m))
+            ('<tab>',  '/^=.*=<cr>:nohl<cr>'),
+        ])
         vim.command('setlocal syntax=tracwiki')
 
 
@@ -251,7 +255,11 @@ class PreviewWindow(NonEditableWindow):
     def on_create(self):
         vim.command('syn match Keyword /\[\d*\]\w*/ contains=Ignore')
         vim.command('syn match Ignore /\[\d*\]/ contained')
-        vim.command('nnoremap <buffer> <tab> /\\d*\\]\\w*<cr>:nohl<cr>')
+        map_commands([
+            ('<tab>', '/\\d*\\]\\w*<cr>:nohl<cr>'),
+            ('<cr>', 'F[l/^ *<c-r><c-w>. http<cr>fh"py$:nohl<cr>'
+                     ':python webbrowser.open("<c-r>p")<cr><c-o>'),
+        ])
 
     def load(self, html):
         file_name = vim.eval('g:tracTempHtml')
@@ -267,12 +275,10 @@ class PreviewWindow(NonEditableWindow):
 
 class WikiToCWindow(NonEditableWindow):
     def on_create(self):
-        nmaps = [
+        map_commands([
             ('<cr>', ':python trac.wiki_view(vim.current.line)<cr>'),
             ('<2-LeftMouse>', ':python trac.wiki_view(vim.current.line)<cr>'),
-        ]
-        for m in nmaps:
-            vim.command('nnoremap <buffer> {0} {1}'.format(*m))
+        ])
         vim.command('vertical resize 30')
 
     def on_write(self):
@@ -294,10 +300,10 @@ class WikiToCWindow(NonEditableWindow):
 
 class TicketListWindow(NonEditableWindow):
     def on_create(self):
-        vim.command('nnoremap <buffer> <cr> '
-                    ':python trac.ticket_view(listing=True)<cr>')
-        vim.command('nnoremap <buffer> <2-LeftMouse> '
-                    ':python trac.ticket_view(listing=True)<cr>')
+        map_commands([
+            ('<cr>', ':python trac.ticket_view(listing=True)<cr>'),
+            ('<2-LeftMouse>', ':python trac.ticket_view(listing=True)<cr>'),
+        ])
 
     def on_write(self):
         try:
@@ -317,8 +323,8 @@ class TicketListWindow(NonEditableWindow):
                       'PreProc', 'Type', 'Underlined']
         num_hi = len(hilighters)
         options = trac.ticket.options
-        for k in options:
-            for i, a in enumerate(options[k]):
+        for values in options.values():
+            for i, a in enumerate(values):
                 try:
                     float(a)
                 except ValueError:
@@ -330,6 +336,7 @@ class TicketListWindow(NonEditableWindow):
 class TicketWindow(NonEditableWindow):
     def on_create(self):
         vim.command('setlocal syntax=tracwiki')
+        map_commands([('<tab>', '/^=.*=<cr>:nohl<cr>')])
 
     def on_write(self):
         NonEditableWindow.on_write(self)
@@ -344,10 +351,10 @@ class TicketCommentWindow(Window):
 
 class SearchWindow(NonEditableWindow):
     def on_create(self):
-        vim.command('nnoremap <buffer> <c-]> '
-                    ':python trac.wiki_view("<c-r><c-w>")<cr>')
-        vim.command('nnoremap <buffer> <cr> '
-                    ':python trac.open_line()<cr>')
+        map_commands([
+            ('<c-]>', ':python trac.wiki_view("<c-r><c-w>")<cr>'),
+            ('<cr>', ':python trac.open_line()<cr>'),
+        ])
         vim.command('setlocal syntax=tracwiki')
 
     def on_write(self):
@@ -358,11 +365,11 @@ class SearchWindow(NonEditableWindow):
 
 class TimelineWindow(NonEditableWindow):
     def on_create(self):
-        vim.command('nnoremap <buffer> <c-]> '
-                    ':python trac.wiki_view("<c-r><c-w>")<cr>')
+        map_commands([
+            ('<c-]>', ':python trac.wiki_view("<c-r><c-w>")<cr>'),
+            ('<cr>', ':python trac.open_line()<cr>'),
+        ])
         vim.command('setlocal syntax=tracwiki')
-        vim.command('nnoremap <buffer> <cr> '
-                    ':python trac.open_line()<cr>')
 
     def on_write(self):
         NonEditableWindow.on_write(self)
@@ -375,8 +382,8 @@ class TimelineWindow(NonEditableWindow):
 
 class ServerWindow(NonEditableWindow):
     def on_create(self):
-        vim.command('nnoremap <buffer> <cr> '
-                    ':python trac.set_server("<c-r><c-w>")<cr>')
+        map_commands([
+            ('<cr>', ':python trac.set_server("<c-r><c-w>")<cr>')])
 
     def on_write(self):
         NonEditableWindow.on_write(self)
@@ -385,8 +392,8 @@ class ServerWindow(NonEditableWindow):
 
 class AttachmentWindow(NonEditableWindow):
     def on_create(self):
-        vim.command('nnoremap <buffer> <cr> '
-                    ':python trac.get_attachment(vim.current.line)')
+        map_commands([
+            ('<cr>', ':python trac.get_attachment(vim.current.line)')])
 
 
 class ChangesetWindow(NonEditableWindow):
