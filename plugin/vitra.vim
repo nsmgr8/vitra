@@ -68,8 +68,8 @@ com! -nargs=0 TTLastPage python trac.ticket.page = trac.ticket.total_pages; trac
 com! -nargs=+ -complete=customlist,ComAction TTAction python trac.act_ticket(<q-args>)
 
 com! -nargs=+ TSearch python trac.search_view(<q-args>)
-com! -nargs=1 TChangesetOpen python trac.changeset_view(<f-args>)
-com! -nargs=0 TTimelineOpen python trac.timeline_view()
+com! -nargs=1 TChangeset python trac.changeset_view(<f-args>)
+com! -nargs=0 TTimeline python trac.timeline_view()
 
 com! -nargs=? -complete=file TAddAttachment python trac.add_attachment(<f-args>)
 com! -nargs=0 TPreview python trac.preview()

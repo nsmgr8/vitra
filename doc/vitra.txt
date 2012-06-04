@@ -1,0 +1,258 @@
+*vitra.txt*
+
+                                *Vitra* (Trac UI)
+
+==============================================================================
+Contents                                                                *Vitra*
+
+    1. Introduction                                                *VitraIntro*
+    2. Settings                                                 *VitraSettings*
+    3. Usage                                                       *VitraUsage*
+        3.1 Ticket UI                                           *VitraTicketUI*
+        3.2 Wiki UI                                               *VitraWikiUI*
+        3.3 Others                                                *VitraOthers*
+    4. Commands                                                 *VitraCommands*
+    5. Options                                                   *VitraOptions*
+    6. License                                                   *VitraLicence*
+
+==============================================================================
+1. Introduction                                                    *VitraIntro*
+
+*Vitra* is a Trac client UI for the wonderful universal editor Vim.  It talks
+to a trac server via XML-RPC.  It provides a fancy UI for both wiki and
+tickets. A paginated list of tickets window, full ticket detail window along
+with attachment window makes a great UI for ticket manipulation.  The wiki UI
+combines the list of wiki pages, edit window with the content of the wiki and
+a preview window. It also has timeline, search and changeset windows.
+
+==============================================================================
+2. Settings                                                     *VitraSettings*
+
+The minimum setting requirement is to define the trac server. One or more trac
+server(s) can be defined for use. To add a trac server define the global
+dictionary of servers |g:tracServerList| in your .vimrc. Following is an
+example of django trac server:
+
+    let g:tracServerList = {}
+    let g:tracServerList['djangoproject'] = {
+        \ 'scheme': 'https',
+        \ 'auth': 'USERNAME:PASSWORD',
+        \ 'server': 'code.djangoproject.com',
+        \ 'rpc_auth': '/login/xmlrpc'
+        \ }
+
+By default, scheme and rpc_auth have values http and /login/rpc.
+
+If you define more than one trac server, you can also choose a default server
+that will be selected when a vim session starts. To define the default server
+set the |g:tracDefaultServer| in your .vimrc to the server key of it. e.g.,
+
+    let g:tracDefaultServer = 'djangoproject'
+
+It is also possible to change the trac server in the running vim session. Use
+|TracServer| command to change the trac server to use. It can offer tab
+completion for available servers that are defined in |g:tracServerList|. Note
+that, this does not set the server to be default for next sessions.
+
+==============================================================================
+3. Usage                                                           *VitraUsage*
+
+3.1 Ticket UI                                                   *VitraTicketUI*
+
+Open the UI by |TTOpen|. It will open four windows with a ticket listing,
+detail, edit and attachment window. To update the ticket attributes and
+contents and adding comments, use the Edit window. Enter the text into the
+Edit window and run |TTSetSummary|, |TTSetDescription|, |TTUpdate| Attribute,
+etc. to update the ticket.
+
+To create a new ticket enter the description in the Edit window and run the
+|TTCreate| command with the ticket summary.
+
+To attach a file to the current ticket, run |TAddAttachment| filepath. It will
+be listed in the attachment window. Press <enter> to download the attachment
+to the current working folder.
+
+3.2 Wiki UI                                                       *VitraWikiUI*
+
+Open the wiki UI by |TWOpen|. It will open list of pages, edit wiki, preview
+and attachment window. Run |TWSave| after editing wiki pages. To create new
+page run |TWOpen| pagename. Add content in the wiki edit page and run
+|TWSave|.
+
+3.3 Others                                                        *VitraOthers*
+
+|TTimeline| opens a window with the Trac timeline.
+
+|TSearch| query opens a window with the search result performed on the Trac.
+
+|TChangeset| id opens the changeset in a window as diff.
+
+==============================================================================
+4. Commands                                                     *VitraCommands*
+
+The following commands are available for |Vitra|:
+
+    *TracServer* server_key
+        Sets the current Trac server to one of the pre-defined server in
+        |g:tracServerList|.
+
+    *TWOpen* [page_name]
+        Opens the wiki UI. By default, it loads the current wiki page in the
+        UI. Given a page name, it loads that wiki page. If the page doesn't
+        exist, wiki window loads empty and offers to create the page.
+
+    *TWClose*
+        Closes the wiki UI. That is, it deletes all buffers for wiki UI.
+
+    *TWSave*
+        Saves the wiki edits back to the current Trac server.
+
+    *TWInfo*
+        Shows some information about the current wiki page. i.e., version,
+        author, update time, etc.
+
+    *TTOpen* [ticket_id]
+        Opens the ticket UI. By default, it loads the current ticket and
+        refreshes the ticket list. If a ticket number is given, it loads the
+        ticket. Unlike wiki on non-existent ticket, it doesn't offer creating
+        one.
+
+    *TTClose*
+        Closes the ticket UI. That is, it deletes all buffers for ticket UI.
+
+    *TTSetSummary*
+        Sets the summary field for current ticket. The summary is taken from
+        the "Ticket: Edit" window.
+
+    *TTSetDescription*
+        Sets the description for current ticket. The description is taken from
+        the "Ticket: Edit" window.
+
+    *TTAddComment*
+        Adds a comment to the current ticket. The comment is taken from the
+        "Ticket: Edit' window.
+
+    *TTAction* [action [value]]
+        Performs an action on the current ticket defined by the Trac workflow.
+        It validates the action before the commit. It also offers the
+        available action options that was loaded at ticket open time.
+
+    *TTUpdate* Attribute value
+        Update the attribute of the current ticket to the given value. Some of
+        the attributes provide tab completion on valid values.
+
+    *TTOrderBy* attribute
+        Sort ticket list by ordering the values of given attribute. It has tab
+        completion during command.
+
+    *TTGroupBy* attribute
+        Sort ticket list by grouping the values of given attribute. It has tab
+        completion during command.
+
+    *TTFilter* Attribute value
+        Filter the ticket list on the given attribute value. It has tab
+        completion.
+
+    *TTIgnore* Attribute value
+        Filter the ticket list ignoring the given attribute value. It has tab
+        completion.
+
+    *TTClearFilter* attribute
+        Clear the attribute filter. Tab completion is available.
+
+    *TTClearAllFilters*
+        Clears all filters from the ticket list.
+
+    *TTNextPage*
+        Go to the next page of ticket list.
+
+    *TTPreviousPage*
+        Go to the previous page of ticket list.
+
+    *TTFirstPage*
+        Go to the first page of ticket list.
+
+    *TTLastPage*
+        Go to the last page of ticket list.
+
+    *TBack*
+        Navigate back to the history of opened wiki/ticket list.
+
+    *TForward*
+        Navigate forward to the history of opened wiki/ticket list.
+
+    *TPreview*
+        Preview the wiki content as HTML in your browser.
+
+    *TAddAttachment* file_path
+        Add file to the current wiki page/ticket.
+
+    *TTimeline*
+        Shows the Trac timeline.
+
+    *TSearch* query
+        Searches the trac server for the given query.
+
+    *TChangeset* changeset
+        Shows the diff of a changeset.
+
+==============================================================================
+5. Options                                                       *VitraOptions*
+
+The following options are available for |Vitra|:
+
+    *g:tracDefaultServer*  ''
+        Set your preferred trac server, if you have more than one defined in
+        |g:tracServerList|.
+
+    *g:tracDefaultComment* 'Updated from Vitra'
+        Default comment to use when saving changes to trac.
+
+    *g:tracTicketClause* 'status!=closed'
+        This provides a default filtering options for ticket listing.
+
+    *g:tracTicketGroup* 'milestone'
+        Set to your preferred attribute for listing tickets in groups.
+
+    *g:tracTicketOrder* 'priority'
+        Set to your preferred attribute for listing tickets in order.
+
+    *g:tracTicketStyle* 'full'
+        Unless set to 'full', the ticket listing window will appear in the
+        ticket UI. Also this will hide all other buffers other than the ticket
+        UI.
+
+    *g:tracWikiStyle* 'full'
+        If set to 'full', the wiki UI will hide all other buffers.
+
+    *g:tracWikiPreview* 1
+        If set to 1, the wiki UI will show a preview of the current page.
+
+    *g:tracWikiToC* 1
+        If set to 1, the wiki UI will show the list of available pages.
+
+    *g:tracHideTracWiki* 1
+        If set to 1, the list of wiki pages will not show the Trac's own pages.
+
+==============================================================================
+6. License                                                       *VitraLicence*
+
+Copyright (c) 2011 M. Nasimul Haque
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

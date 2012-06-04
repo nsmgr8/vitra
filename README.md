@@ -182,11 +182,11 @@ current wiki page content by __TPreview__.
 
 ## Other windows
 
+ * __TTimeline__ opens the timeline in a window and by pressing `ENTER` one can
+   open a ticket, wiki or changeset.
  * __TSearch__ command can search the trac and provide a window with the search
    result where one can open a ticket, wiki or changeset by pressing `ENTER`.
- * __TTimelineOpen__ opens the timeline in a window and by pressing `ENTER` one
-   can open a ticket, wiki or changeset.
- * __TChangesetOpen__ command can open a diff view of a given changeset in
+ * __TChangeset__ command can open a diff view of a given changeset in
    a window.
 
 # Options
