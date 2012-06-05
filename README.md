@@ -18,6 +18,10 @@ Wiki UI
 
 ![django wiki][djwiki]
 
+Other windows
+
+![localdj windows][otherwins]
+
 # Requirements
 
 `Vitra` requires Vim 7.3+ to be compiled with python 2.6+. [`Align`][Align] and
@@ -255,4 +259,5 @@ SOFTWARE.
 [Pathogen]: http://github.com/tpope/vim-pathogen "Vim runtime manager"
 [djtkt]: http://dl.dropbox.com/u/125015/vitradjangotickets.png "Django tickets"
 [djwiki]: http://dl.dropbox.com/u/125015/vitradjangowiki.png "Django wiki"
+[otherwins]: http://dl.dropbox.com/u/125015/vitraothers.png "Other windows"
 [vimtrac]: http://www.vim.org/scripts/script.php?script_id=2147

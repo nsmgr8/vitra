@@ -377,7 +377,7 @@ class TimelineWindow(NonEditableWindow):
         vim.command('syn match Title /\w*:>>/ contained')
         vim.command('syn match Identifier /^[0-9\-]\{10\}\s.*$/ '
                     'contains=Statement')
-        vim.command('syn match Statement /\d\{2\}:\d\{2\}:\d\{2\}$/')
+        vim.command('syn match Statement /[0-9:]\{8\}$/')
 
 
 class ServerWindow(NonEditableWindow):
