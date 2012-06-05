@@ -334,18 +334,12 @@ class TicketListWindow(NonEditableWindow):
 
 class TicketWindow(NonEditableWindow):
     def on_write(self):
-        if vim.eval('g:tracTicketFormat') == '1':
-            vim.command('setlocal syntax=text')
-            map_commands([
-                ('<tab>',
-                 '/^\w\{3\} [0-9/]\{10\} [0-9:]\{5\} (.*)$<cr>:nohl<cr>'),
-                ('<c-]>', '/\\d*\\]\\w*<cr>:nohl<cr>'),
-                ('<cr>', 'F[l/^ *<c-r><c-w>. http<cr>fh"py$:nohl<cr>'
-                        ':python webbrowser.open("<c-r>p")<cr><c-o>'),
-            ])
-        else:
-            vim.command('setlocal syntax=tracwiki')
-            map_commands([('<tab>', '/^=.*=<cr>:nohl<cr>')])
+        vim.command('setlocal syntax=tracwiki')
+        self.highlight()
+        map_commands([('<tab>', '/^=.*=<cr>:nohl<cr>')])
+        NonEditableWindow.on_write(self)
+
+    def highlight(self):
         vim.command('syn match Keyword /^ \+\*[^:]*:.*$/ contains=Title')
         vim.command('syn match Title /^ \+\*[^:]*:/ contained')
         vim.command('syn match Underlined /\[\d*\]\w*/ contains=Ignore')
@@ -354,7 +348,6 @@ class TicketWindow(NonEditableWindow):
                     '/\w\{3\} [0-9/]\{10\} [0-9:]\{5\} (.*)/ '
                     'contains=Identifier')
         vim.command('syn match Identifier /(.*)/ contained')
-        NonEditableWindow.on_write(self)
 
     def load(self, wiki_text):
         file_name = '/tmp/ticket_wiki_markup_text.html'
@@ -365,8 +358,17 @@ class TicketWindow(NonEditableWindow):
         self.command('setlocal modifiable')
         self.buffer[:] = []
         self.command('silent r!lynx -dump {0}'.format(file_name))
+        self.command('setlocal nomodifiable')
         self.command('norm gg')
-        self.on_write()
+        vim.command('setlocal syntax=text')
+        self.highlight()
+        map_commands([
+            ('<tab>',
+                '/^\w\{3\} [0-9/]\{10\} [0-9:]\{5\} (.*)$<cr>:nohl<cr>'),
+            ('<c-]>', '/\\d*\\]\\w*<cr>:nohl<cr>'),
+            ('<cr>', 'F[l/^ *<c-r><c-w>. http<cr>fh"py$:nohl<cr>'
+                    ':python webbrowser.open("<c-r>p")<cr><c-o>'),
+        ])
 
 
 class TicketCommentWindow(Window):
@@ -924,6 +926,7 @@ class Trac(object):
             self.server = xmlrpclib.ServerProxy(url, transport=transport)
         else:
             self.server = xmlrpclib.ServerProxy(url)
+        self.server.__transport.user_agent = "Vitra 1.0 (Trac client for Vim)"
 
         self.wiki.initialise()
         self.ticket.initialise()
@@ -990,7 +993,11 @@ class Trac(object):
         if tid:
             self.uiticket.focus('ticket')
             if vim.eval('g:tracTicketFormat') == '1':
-                self.uiticket.windows['ticket'].load(contents['ticket'])
+                try:
+                    self.uiticket.windows['ticket'].load(contents['ticket'])
+                except Exception as e:
+                    print 'Could not format the content'
+                    print 'Error: {0}'.format(e)
         self.set_history('ticket', tid)
 
     def search_view(self, keyword):
