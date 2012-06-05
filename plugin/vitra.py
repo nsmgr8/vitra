@@ -26,8 +26,7 @@ def truncate_words(text, num_words=10):
 
 def get_time(value, format=False):
     if isinstance(value, xmlrpclib.DateTime):
-        dt = datetime.datetime.strptime(value.value,
-                                        "%Y%m%dT%H:%M:%S")
+        dt = datetime.datetime.strptime(value.value, "%Y%m%dT%H:%M:%S")
     else:
         dt = datetime.datetime.fromtimestamp(value)
     return dt.strftime("%a %d/%m/%Y %H:%M") if format else dt
@@ -36,8 +35,7 @@ def get_time(value, format=False):
 def save_buffer(buffer, file):
     file_name = os.path.basename(file)
     if os.path.exists(file_name):
-        vim.command('echoerr "Will not overwrite existing file {0}"'.format(
-                        file_name))
+        vim.command('echoerr "File \'{0}\' exists!"'.format(file_name))
     else:
         with open(file_name, 'wb') as fp:
             fp.write(buffer)
@@ -302,8 +300,8 @@ class WikiListWindow(NonEditableWindow):
 class TicketListWindow(NonEditableWindow):
     def on_create(self):
         map_commands([
-            ('<cr>', ':python trac.ticket_view(listing=True)<cr>'),
-            ('<2-LeftMouse>', ':python trac.ticket_view(listing=True)<cr>'),
+            ('<cr>', '0:python trac.ticket_view("<c-r><c-w>")<cr>'),
+            ('<2-LeftMouse>', '0:python trac.ticket_view("<c-r><c-w>")<cr>'),
         ])
 
     def on_write(self):
@@ -402,18 +400,21 @@ class TimelineWindow(SearchWindow):
 class ServerWindow(NonEditableWindow):
     def on_create(self):
         map_commands([
-            ('<cr>', ':python trac.set_server("<c-r><c-w>")<cr>'
-                     ':echo "Trac server is set to <c-r><c-w>"<cr>')])
+            ('<cr>', '0:python trac.set_server("<c-r><c-w>")<cr>'
+                     ':python trac.server_view()<cr>')])
 
     def on_write(self):
         NonEditableWindow.on_write(self)
         vim.command('syn match Keyword /^\w*:/')
+        vim.command('syn match Identifier /^\*\w*:/')
+        vim.command('syn match Title /^!\w*:/')
+        vim.command('syn match Special /^\*!\w*:/')
 
 
 class AttachmentWindow(NonEditableWindow):
     def on_create(self):
         map_commands([
-            ('<cr>', ':python trac.get_attachment(vim.current.line)')])
+            ('<cr>', ':python trac.get_attachment(vim.current.line)<cr>')])
 
 
 class ChangesetWindow(NonEditableWindow):
@@ -686,7 +687,7 @@ class Ticket(object):
             self.current_component = ticket[3].get("component")
             actions = self.get_actions()
             self.list_attachments()
-        except TypeError:
+        except (TypeError, ValueError):
             return 'Please select a ticket'
         except Exception as e:
             return 'An error occured:\n\t{0}'.format(e)
@@ -962,16 +963,13 @@ class Trac(object):
         self.uiwiki.focus('wiki')
         self.set_history('wiki', page)
 
-    def ticket_view(self, tid=False, direction=None, listing=False):
-        if listing:
-            m = re.search(r'^\s*(\d+)', vim.current.line)
-            try:
-                tid = int(m.group(0))
-            except:
-                vim.command("echoerr 'no ticket selected'")
-                return
+    def ticket_view(self, tid=None, direction=None):
+        try:
+            tid = int(tid) if tid else self.ticket.current.get('id')
+        except (ValueError, TypeError):
+            print 'Please provide a valid ticket id'
+            return
 
-        tid = int(tid) if tid else self.ticket.current.get('id')
         tid = self.traverse_history('ticket', tid, direction)
 
         if not self.ticket.fields:
@@ -989,10 +987,10 @@ class Trac(object):
                                                     self.ticket.total_pages)
         self.uiticket.create()
         self.uiticket.update(contents, titles)
-        if vim.eval('g:tracTicketFormat') == '1':
-            self.uiticket.windows['ticket'].load(contents['ticket'])
         if tid:
             self.uiticket.focus('ticket')
+            if vim.eval('g:tracTicketFormat') == '1':
+                self.uiticket.windows['ticket'].load(contents['ticket'])
         self.set_history('ticket', tid)
 
     def search_view(self, keyword):
@@ -1004,9 +1002,15 @@ class Trac(object):
         self.timeline_window.set_name(self.server_name)
 
     def server_view(self):
-        servers = "\n".join(['{0}: {1}'.format(key, val['server']) for key, val
+        default = '{0}: '.format(vim.eval('g:tracDefaultServer'))
+        current = '{0}: '.format(self.server_name)
+        servers = '\n'.join(['{0}: {1}'.format(key, val['server']) for key, val
                              in self.server_list.iteritems()])
+        if len(default) > 2:
+            servers = servers.replace(default, '*{0}'.format(default))
+        servers = servers.replace(current, '!{0}'.format(current))
         self.server_window.write(servers)
+        print 'Trac server is set to', self.server_name
 
     def changeset_view(self, changeset):
         cs_url = '{scheme}://{server}/changeset/{changeset}'.format(
