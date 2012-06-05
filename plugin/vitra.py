@@ -185,7 +185,7 @@ class WikiUI(UI):
         self.windows = {
             'wiki': WikiWindow(prefix='Wiki'),
             'preview': PreviewWindow(prefix='Wiki', name='Preview'),
-            'toc': WikiToCWindow(prefix='Wiki', name='Table\ of\ Contents'),
+            'toc': WikiListWindow(prefix='Wiki', name='List\ of\ pages'),
             'attachment': AttachmentWindow(prefix='Wiki', name='Attachment'),
         }
 
@@ -273,7 +273,7 @@ class PreviewWindow(NonEditableWindow):
         self.command('norm gg')
 
 
-class WikiToCWindow(NonEditableWindow):
+class WikiListWindow(NonEditableWindow):
     def on_create(self):
         map_commands([
             ('<cr>', ':python trac.wiki_view(vim.current.line)<cr>'),
@@ -383,7 +383,8 @@ class TimelineWindow(NonEditableWindow):
 class ServerWindow(NonEditableWindow):
     def on_create(self):
         map_commands([
-            ('<cr>', ':python trac.set_server("<c-r><c-w>")<cr>')])
+            ('<cr>', ':python trac.set_server("<c-r><c-w>")<cr>'
+                     ':echo "Trac server is set to <c-r><c-w>"<cr>')])
 
     def on_write(self):
         NonEditableWindow.on_write(self)

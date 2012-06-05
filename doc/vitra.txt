@@ -12,8 +12,9 @@ Contents                                                                *Vitra*
         3.2 Wiki UI                                               *VitraWikiUI*
         3.3 Others                                                *VitraOthers*
     4. Commands                                                 *VitraCommands*
-    5. Options                                                   *VitraOptions*
-    6. License                                                   *VitraLicence*
+    5. Keymaps                                                   *VitraKeymaps*
+    6. Options                                                   *VitraOptions*
+    7. License                                                   *VitraLicence*
 
 ==============================================================================
 1. Introduction                                                    *VitraIntro*
@@ -60,10 +61,20 @@ that, this does not set the server to be default for next sessions.
 3.1 Ticket UI                                                   *VitraTicketUI*
 
 Open the UI by |TTOpen|. It will open four windows with a ticket listing,
-detail, edit and attachment window. To update the ticket attributes and
-contents and adding comments, use the Edit window. Enter the text into the
-Edit window and run |TTSetSummary|, |TTSetDescription|, |TTUpdate| Attribute,
-etc. to update the ticket.
+detail, edit and attachment window. Press <enter> or double click on a line of
+the ticket listing window to open a ticket. The ticket list can be paginated
+through |TTNextPage|, |TTPreviousPage|, |TTFirstPage| and |TTLastPage|. Ticket
+list window uses |Align| plugin to format the columns. Install this plugin to
+get the best view.
+
+To filter the ticket list, there will be a number of |TTFilter|, |TTIgnore|
+commands available for each of the ticket attributes. To sort the ticket list
+use |TTGroupBy| and |TTOrderBy| commands. |TTClearFilter| and
+|TTClearAllFilters| are for removing filters from the ticket list.
+
+To update the ticket attributes and contents and adding comments, use the Edit
+window. Enter the text into the Edit window and run |TTSetSummary|,
+|TTSetDescription|, |TTUpdate| Attribute, etc. to update the ticket.
 
 To create a new ticket enter the description in the Edit window and run the
 |TTCreate| command with the ticket summary.
@@ -72,12 +83,31 @@ To attach a file to the current ticket, run |TAddAttachment| filepath. It will
 be listed in the attachment window. Press <enter> to download the attachment
 to the current working folder.
 
+|Vitra| supports Trac workflow actions. It loads a ticket with actions
+associated with it. To apply an action to the opened ticket, |TTAction| can be
+run, which provides a tab completion for the available actions on the ticket.
+
+|Vitra| keeps the history of opened tickets in the current session. |TBack|
+and |TForward| commands provide navigation through the history of opened
+tickets.
+
 3.2 Wiki UI                                                       *VitraWikiUI*
 
 Open the wiki UI by |TWOpen|. It will open list of pages, edit wiki, preview
-and attachment window. Run |TWSave| after editing wiki pages. To create new
+and attachment window. Press <enter> or double click on a line in the wiki
+listing window to open that page.
+
+The main or edit wiki window loads the wiki text for the page. This text can
+be edited and saved. Run |TWSave| after editing wiki pages. To create new
 page run |TWOpen| pagename. Add content in the wiki edit page and run
 |TWSave|.
+
+|TAddAttachment| can attach a file to the current wiki page. |TBack| and
+|TForward| can traverse the history of opened wiki pages.
+
+The preview window shows a stripped out HTML output. The window has two handy
+keymaps, <tab> and <enter>. <tab> can jump to the next hyperlink and pressing
+<enter> can open the link in your default browser.
 
 3.3 Others                                                        *VitraOthers*
 
@@ -86,6 +116,9 @@ page run |TWOpen| pagename. Add content in the wiki edit page and run
 |TSearch| query opens a window with the search result performed on the Trac.
 
 |TChangeset| id opens the changeset in a window as diff.
+
+|TServer| opens the list of available trac servers. Pressing <enter> on a name
+of a server changes the Trac server for the current session.
 
 ==============================================================================
 4. Commands                                                     *VitraCommands*
@@ -196,8 +229,51 @@ The following commands are available for |Vitra|:
     *TChangeset* changeset
         Shows the diff of a changeset.
 
+    *TServer*
+        Opens a list of available Trac servers.
+
 ==============================================================================
-5. Options                                                       *VitraOptions*
+5. Keymaps                                                       *VitraKeymaps*
+
+Following is the list of keymaps available for different buffers in the UI.
+
+Ticket listing window has -
+    <enter>: opens the ticket corresponding to the current line
+    <double-click>: same as <enter> for mouse
+
+Ticket window has -
+    <tab>: jumps to the next header
+
+Wiki listing window has -
+    <enter>: opens the page at the current line
+    <double-click>: same as <enter> for mouse
+
+Wiki window has -
+    <C-]>: opens a wiki page under cursor, i.e., :TWOpen <C-R><C-W>
+    <double-click>: same as <C-]> for mouse
+    <wo>: opens the wiki page which is written as [wiki:some/page page], the
+        cursor must be on 'some/page'
+    <w]>: opens the wiki page which is written as [wiki:some/page], the cursor
+        must be on 'some/page'
+    <tab>: jumps to the next header
+
+Wiki Preview has -
+    <tab>: jumps to the next hyperlink
+    <enter>: opens the hyperlink under current cursor in the default browser
+
+Attachment window has -
+    <enter>: downloads the attachment under current cursor into the current
+        folder
+
+Search and Timeline window has -
+    <C-]>: opens a wiki page for the word under current cursor
+    <enter>: opens a ticket, wiki or changeset under current line
+
+Server window has -
+    <enter>: sets the current Trac server to the name under cursor.
+
+==============================================================================
+6. Options                                                       *VitraOptions*
 
 The following options are available for |Vitra|:
 
@@ -235,7 +311,7 @@ The following options are available for |Vitra|:
         If set to 1, the list of wiki pages will not show the Trac's own pages.
 
 ==============================================================================
-6. License                                                       *VitraLicence*
+7. License                                                       *VitraLicence*
 
 Copyright (c) 2011 M. Nasimul Haque
 
