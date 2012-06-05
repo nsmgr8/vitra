@@ -243,6 +243,8 @@ Ticket listing window has -
 
 Ticket window has -
     <tab>: jumps to the next header
+    <C-]>: jumps to the next hyperlink
+    <enter>: opens the current hyperlink into the default browser
 
 Wiki listing window has -
     <enter>: opens the page at the current line
@@ -266,6 +268,7 @@ Attachment window has -
         folder
 
 Search and Timeline window has -
+    <tab>: jumps to the next entry
     <C-]>: opens a wiki page for the word under current cursor
     <enter>: opens a ticket, wiki or changeset under current line
 

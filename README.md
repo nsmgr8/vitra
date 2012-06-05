@@ -211,6 +211,9 @@ The following options are available for `Vitra`:
  * _g:tracTicketStyle_: 'full'
    * Unless set to 'full', the ticket listing window will appear in the ticket
      UI. Also this will hide all other buffers other than the ticket UI.
+ * _g:tracTicketFormat_: 1
+   * If set to 1, show formatted text in ticket detail window. Otherwise, show
+     the wiki markup content.
  * _g:tracWikiStyle_: 'full'
    * If set to 'full', the wiki UI will hide all other buffers.
  * _g:tracWikiPreview_: 1

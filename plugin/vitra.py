@@ -266,6 +266,7 @@ class PreviewWindow(NonEditableWindow):
         with codecs.open(file_name, 'w', 'utf-8') as fp:
             fp.write(html)
 
+        self.prepare()
         self.command('setlocal modifiable')
         self.command('norm ggdG')
         self.command('silent r!lynx -dump {0}'.format(file_name))
@@ -334,14 +335,40 @@ class TicketListWindow(NonEditableWindow):
 
 
 class TicketWindow(NonEditableWindow):
-    def on_create(self):
-        vim.command('setlocal syntax=tracwiki')
-        map_commands([('<tab>', '/^=.*=<cr>:nohl<cr>')])
-
     def on_write(self):
+        if vim.eval('g:tracTicketFormat') == '1':
+            vim.command('setlocal syntax=text')
+            map_commands([
+                ('<tab>',
+                 '/^\w\{3\} [0-9/]\{10\} [0-9:]\{5\} (.*)$<cr>:nohl<cr>'),
+                ('<c-]>', '/\\d*\\]\\w*<cr>:nohl<cr>'),
+                ('<cr>', 'F[l/^ *<c-r><c-w>. http<cr>fh"py$:nohl<cr>'
+                        ':python webbrowser.open("<c-r>p")<cr><c-o>'),
+            ])
+        else:
+            vim.command('setlocal syntax=tracwiki')
+            map_commands([('<tab>', '/^=.*=<cr>:nohl<cr>')])
+        vim.command('syn match Keyword /^ \+\*[^:]*:.*$/ contains=Title')
+        vim.command('syn match Title /^ \+\*[^:]*:/ contained')
+        vim.command('syn match Underlined /\[\d*\]\w*/ contains=Ignore')
+        vim.command('syn match Ignore /\[\d*\]/ contained')
+        vim.command('syn match Special '
+                    '/\w\{3\} [0-9/]\{10\} [0-9:]\{5\} (.*)/ '
+                    'contains=Identifier')
+        vim.command('syn match Identifier /(.*)/ contained')
         NonEditableWindow.on_write(self)
-        vim.command('syn match Keyword /^ \+[^:\*]*: .*$/ contains=Title')
-        vim.command('syn match Title /^ \+[^:\*]*:/ contained')
+
+    def load(self, wiki_text):
+        file_name = '/tmp/ticket_wiki_markup_text.html'
+        with codecs.open(file_name, 'w', 'utf-8') as fp:
+            fp.write(trac.server.wiki.wikiToHtml(wiki_text))
+
+        self.prepare()
+        self.command('setlocal modifiable')
+        self.buffer[:] = []
+        self.command('silent r!lynx -dump {0}'.format(file_name))
+        self.command('norm gg')
+        self.on_write()
 
 
 class TicketCommentWindow(Window):
@@ -352,6 +379,7 @@ class TicketCommentWindow(Window):
 class SearchWindow(NonEditableWindow):
     def on_create(self):
         map_commands([
+            ('<tab>', '/^\w\+:>><cr>:nohl<cr>'),
             ('<c-]>', ':python trac.wiki_view("<c-r><c-w>")<cr>'),
             ('<cr>', ':python trac.open_line()<cr>'),
         ])
@@ -363,21 +391,12 @@ class SearchWindow(NonEditableWindow):
         vim.command('syn match Title /\w*:>>/ contained')
 
 
-class TimelineWindow(NonEditableWindow):
-    def on_create(self):
-        map_commands([
-            ('<c-]>', ':python trac.wiki_view("<c-r><c-w>")<cr>'),
-            ('<cr>', ':python trac.open_line()<cr>'),
-        ])
-        vim.command('setlocal syntax=tracwiki')
-
+class TimelineWindow(SearchWindow):
     def on_write(self):
-        NonEditableWindow.on_write(self)
-        vim.command('syn match Keyword /\w*:>> .*$/ contains=Title')
-        vim.command('syn match Title /\w*:>>/ contained')
+        SearchWindow.on_write(self)
         vim.command('syn match Identifier /^[0-9\-]\{10\}\s.*$/ '
                     'contains=Statement')
-        vim.command('syn match Statement /[0-9:]\{8\}$/')
+        vim.command('syn match Statement /[0-9:]\{8\}$/ contained')
 
 
 class ServerWindow(NonEditableWindow):
@@ -612,7 +631,7 @@ class Ticket(object):
         res = max_regex.search(self.query_string())
         if res:
             tickets_per_page = res.groups()[0]
-            if tickets_per_page == 0:
+            if tickets_per_page == '0':
                 tickets_per_page = total
         else:
             tickets_per_page = 100
@@ -680,7 +699,7 @@ class Ticket(object):
                 v = get_time(ticket[3][f['name']], True)
             else:
                 v = ticket[3].get(f['name'], '')
-            str_ticket.append(' {0:>{2}}: {1}'.format(f['label'], v,
+            str_ticket.append(' * {0:>{2}}: {1}'.format(f['label'], v,
                                                      self.max_label_width))
 
         str_ticket.append("")
@@ -970,6 +989,8 @@ class Trac(object):
                                                     self.ticket.total_pages)
         self.uiticket.create()
         self.uiticket.update(contents, titles)
+        if vim.eval('g:tracTicketFormat') == '1':
+            self.uiticket.windows['ticket'].load(contents['ticket'])
         if tid:
             self.uiticket.focus('ticket')
         self.set_history('ticket', tid)
