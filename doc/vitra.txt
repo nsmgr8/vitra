@@ -159,6 +159,12 @@ The following commands are available for |Vitra|:
     *TTClose*
         Closes the ticket UI. That is, it deletes all buffers for ticket UI.
 
+    *TTEditSummary*
+        Loads the current ticket summary into edit window for editing.
+
+    *TTEditDescription*
+        Loads the current ticket description into edit window for editing.
+
     *TTSetSummary*
         Sets the summary field for current ticket. The summary is taken from
         the "Ticket: Edit" window.
