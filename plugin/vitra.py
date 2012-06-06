@@ -46,18 +46,18 @@ def map_commands(nmaps):
         vim.command('nnoremap <buffer> {0} {1}'.format(*m))
 
 
-class HTTPDigestTransport(xmlrpclib.SafeTransport):
+class HTTPDigestTransport(xmlrpclib.Transport):
     def __init__(self, scheme, username, password, realm):
+        super(HTTPDigestTransport, self).__init__()
         self.username = username
         self.password = password
         self.realm = realm
         self.scheme = scheme
-        self.verbose = False
-        xmlrpclib.SafeTransport.__init__(self)
 
     def request(self, host, handler, request_body, verbose):
         url = '{scheme}://{host}{handler}'.format(scheme=self.scheme,
                                                   host=host, handler=handler)
+        self.verbose = verbose
         request = urllib2.Request(url)
         request.add_data(request_body)
         request.add_header("User-Agent", self.user_agent)
@@ -294,7 +294,7 @@ class WikiListWindow(NonEditableWindow):
 
         vim.command('sort')
         vim.command('silent norm ggOWikiStart')
-        NonEditableWindow.on_write(self)
+        super(WikiListWindow, self).on_write()
 
 
 class TicketListWindow(NonEditableWindow):
@@ -311,7 +311,7 @@ class TicketListWindow(NonEditableWindow):
         except:
             vim.command('echo "install Align for the best view of summary"')
         vim.command('silent %s/^\s*|| / - /g')
-        NonEditableWindow.on_write(self)
+        super(TicketListWindow, self).on_write()
         vim.command('silent norm 2gg')
         vim.command('syn match Ignore /||/')
         vim.command('syn match Number /\<\d*\>/')
@@ -337,7 +337,7 @@ class TicketWindow(NonEditableWindow):
         vim.command('setlocal syntax=tracwiki')
         self.highlight()
         map_commands([('<tab>', '/^=.*=<cr>:nohl<cr>')])
-        NonEditableWindow.on_write(self)
+        super(TicketWindow, self).on_write()
 
     def highlight(self):
         vim.command('syn match Keyword /^ \+\*[^:]*:.*$/ contains=Title')
@@ -386,14 +386,14 @@ class SearchWindow(NonEditableWindow):
         vim.command('setlocal syntax=tracwiki')
 
     def on_write(self):
-        NonEditableWindow.on_write(self)
+        super(SearchWindow, self).on_write()
         vim.command('syn match Keyword /\w*:>> .*$/ contains=Title')
         vim.command('syn match Title /\w*:>>/ contained')
 
 
 class TimelineWindow(SearchWindow):
     def on_write(self):
-        SearchWindow.on_write(self)
+        super(TimelineWindow, self).on_write()
         vim.command('syn match Identifier /^[0-9\-]\{10\}\s.*$/ '
                     'contains=Statement')
         vim.command('syn match Statement /[0-9:]\{8\}$/ contained')
@@ -406,7 +406,7 @@ class ServerWindow(NonEditableWindow):
                      ':python trac.server_view()<cr>')])
 
     def on_write(self):
-        NonEditableWindow.on_write(self)
+        super(ServerWindow, self).on_write()
         vim.command('syn match Keyword /^\w*:/')
         vim.command('syn match Identifier /^\*\w*:/')
         vim.command('syn match Title /^!\w*:/')
@@ -424,7 +424,7 @@ class ChangesetWindow(NonEditableWindow):
         self.command('set ft=diff')
         self.command('silent %s/\r//g')
         self.command('norm gg')
-        NonEditableWindow.on_write(self)
+        super(ChangesetWindow, self).on_write()
 
     def load(self, changeset):
         self.command('setlocal modifiable')
