@@ -111,7 +111,13 @@ keymaps, <tab> and <enter>. <tab> can jump to the next hyperlink and pressing
 
 3.3 Others                                                        *VitraOthers*
 
-|TTimeline| opens a window with the Trac timeline.
+|TTimeline| opens a window with the Trac timeline. It also offers tab
+completion for filtering wiki, ticket, changeset and author. e.g., >
+    :TTimeline
+    :TTimeline wiki
+    :TTimeline nasim
+    :TTimeline ticket nasim
+<
 
 |TSearch| query opens a window with the search result performed on the Trac.
 
@@ -312,6 +318,9 @@ The following options are available for |Vitra|:
 
     *g:tracHideTracWiki* 1
         If set to 1, the list of wiki pages will not show the Trac's own pages.
+
+    *g:tracTimelineMax* 50
+        Sets the maximum entries to show in a timeline window.
 
 ==============================================================================
 7. License                                                       *VitraLicence*
