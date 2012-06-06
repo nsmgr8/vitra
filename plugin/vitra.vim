@@ -42,6 +42,8 @@ call s:vitraDefault('g:tracHideTracWiki', 1)
 call s:vitraDefault('g:tracTicketStyle', 'full')
 call s:vitraDefault('g:tracTicketFormat', 1)
 
+call s:vitraDefault('g:tracTimelineMax', 50)
+
 com! -nargs=? -complete=customlist,ComTracServers TracServer  python trac.set_server(<q-args>)
 
 com! -nargs=? -complete=customlist,ComWiki TWOpen python trac.wiki_view(<f-args>)
@@ -69,9 +71,10 @@ com! -nargs=0 TTLastPage python trac.ticket.page = trac.ticket.total_pages; trac
 
 com! -nargs=+ -complete=customlist,ComAction TTAction python trac.act_ticket(<q-args>)
 
+com! -nargs=* -complete=customlist,ComTracType TTimeline python trac.timeline_view(<f-args>)
+com! -nargs=? TTimelineAuthor python trac.timeline_view(author=<f-args>)
 com! -nargs=+ TSearch python trac.search_view(<q-args>)
 com! -nargs=1 TChangeset python trac.changeset_view(<f-args>)
-com! -nargs=0 TTimeline python trac.timeline_view()
 com! -nargs=0 TServer python trac.server_view()
 
 com! -nargs=? -complete=file TAddAttachment python trac.add_attachment(<f-args>)
@@ -81,6 +84,10 @@ com! -nargs=0 TForward python trac.back(True)
 
 fun ComTracServers(A, L, P)
     return filter(keys(g:tracServerList), 'v:val =~ "^' . a:A . '"')
+endfun
+
+fun ComTracType(A, L, P)
+    return filter(['wiki', 'ticket', 'changeset'], 'v:val =~ "^' . a:A . '"')
 endfun
 
 fun ComWiki(A, L, P)

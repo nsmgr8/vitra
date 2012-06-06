@@ -845,7 +845,7 @@ def search(search_pattern):
     return '\n'.join(result)
 
 
-def timeline(server):
+def timeline(server, on=None, author=None):
     try:
         import feedparser
         from time import strftime
@@ -853,7 +853,11 @@ def timeline(server):
         vim.command('echoerr "Please install feedparser.py!"')
         return
 
-    query = 'ticket=on&changeset=on&wiki=on&max=50&daysback=90&format=rss'
+    query = 'max={0}&format=rss'.format(vim.eval('g:tracTimelineMax'))
+    if on in ('wiki', 'ticket', 'changeset'):
+        query = '{0}=on&{1}'.format(on, query)
+    if author:
+        query = 'authors={0}&{1}'.format(author, query)
     feed = '{scheme}://{server}/timeline?{q}'.format(q=query, **server)
     d = feedparser.parse(feed)
     str_feed = ["Hit <enter> on a line containing :>>", ""]
@@ -870,6 +874,7 @@ def timeline(server):
             str_feed.append("Changeset:>> {0}".format(m.group(1)))
 
         str_feed.append(item.title)
+        str_feed.append('Author: {0}'.format(item.author))
         str_feed.append("Link: {0}".format(item.link))
         str_feed.append('')
 
@@ -1004,8 +1009,8 @@ class Trac(object):
         self.search_window.write(search(keyword))
         self.search_window.set_name(keyword.replace(' ', '_'))
 
-    def timeline_view(self):
-        self.timeline_window.write(timeline(self.server_url))
+    def timeline_view(self, on=None, author=None):
+        self.timeline_window.write(timeline(self.server_url, on, author))
         self.timeline_window.set_name(self.server_name)
 
     def server_view(self):
@@ -1092,12 +1097,12 @@ class Trac(object):
         line = vim.current.line
         if 'Ticket:>>' in line:
             vim.command('tabnew')
-            self.ticket_view(line.replace('Ticket:>> ', ''))
+            self.ticket_view(line.replace('Ticket:>> ', '').strip())
         elif 'Wiki:>>' in line:
             vim.command('tabnew')
-            self.wiki_view(line.replace('Wiki:>> ', ''))
+            self.wiki_view(line.replace('Wiki:>> ', '').strip())
         elif 'Changeset:>>' in line:
-            self.changeset_view(line.replace('Changeset:>> ', ''))
+            self.changeset_view(line.replace('Changeset:>> ', '').strip())
 
     def add_attachment(self, file):
         bname = os.path.basename(vim.current.buffer.name)
