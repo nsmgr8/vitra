@@ -894,7 +894,6 @@ class Trac(object):
         self.search_window = SearchWindow(prefix='Search')
         self.changeset_window = ChangesetWindow(prefix='Changeset')
 
-        self.server_list = vim.eval('g:tracServerList')
         self.default_comment = vim.eval('g:tracDefaultComment')
         self.set_server(vim.eval('g:tracDefaultServer'))
         self.history = {'wiki': [], 'ticket': []}
@@ -908,9 +907,10 @@ class Trac(object):
         return self.uiticket.windows['edit'].content
 
     def set_server(self, server):
+        server_list = vim.eval('g:tracServerList')
         if not server:
-            server = self.server_list.keys()[0]
-        url = self.server_list[server]
+            server = server_list.keys()[0]
+        url = server_list[server]
         self.server_name = server
         self.server_url = {
             'scheme': url.get('scheme', 'http'),
@@ -1014,10 +1014,11 @@ class Trac(object):
         self.timeline_window.set_name(self.server_name)
 
     def server_view(self):
+        server_list = vim.eval('g:tracServerList')
         default = '{0}: '.format(vim.eval('g:tracDefaultServer'))
         current = '{0}: '.format(self.server_name)
         servers = '\n'.join(['{0}: {1}'.format(key, val['server']) for key, val
-                             in self.server_list.iteritems()])
+                             in server_list.iteritems()])
         if len(default) > 2:
             servers = servers.replace(default, '*{0}'.format(default))
         servers = servers.replace(current, '!{0}'.format(current))
