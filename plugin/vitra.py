@@ -684,7 +684,12 @@ class Ticket(object):
         try:
             tid = int(tid)
             ticket = trac.server.ticket.get(tid)
-            self.current = {'id': tid, '_ts': ticket[3].get('_ts')}
+            self.current = {
+                'id': tid,
+                '_ts': ticket[3].get('_ts'),
+                'summary': ticket[3]['summary'],
+                'description': ticket[3]['description'],
+            }
             ticket_changelog = trac.server.ticket.changeLog(tid)
             self.current_component = ticket[3].get("component")
             actions = self.get_actions()
@@ -1135,6 +1140,9 @@ class Trac(object):
             print 'Done.'
         else:
             print "You need an active ticket or wiki open!"
+
+    def load_current(self, text_for):
+        self.uiticket.windows['edit'].write(self.ticket.current.get(text_for))
 
     def preview(self):
         bname = os.path.basename(vim.current.buffer.name)

@@ -54,6 +54,8 @@ com! -nargs=0 TWInfo python print trac.wiki.get_page_info()
 com! -nargs=? -complete=customlist,ComTicket TTOpen python trac.ticket_view(<q-args>)
 com! -nargs=0 TTClose python trac.uiticket.destroy()
 
+com! -nargs=0 TTEditSummary python trac.load_current('summary')
+com! -nargs=0 TTEditDescription python trac.load_current('description')
 com! -nargs=0 TTSetSummary python trac.update_ticket('summary')
 com! -nargs=0 TTSetDescription python trac.update_ticket('description')
 com! -nargs=0 TTAddComment python trac.update_ticket('comment')
