@@ -122,7 +122,7 @@ class Window(object):
         text = text.encode('utf-8', 'ignore')
         self.prepare()
         vim.command("setlocal modifiable")
-        self.buffer[:] = text.split('\n')
+        self.buffer[:] = text.splitlines()
         vim.command('normal gg')
         self.on_write()
 
@@ -603,7 +603,7 @@ class Ticket(object):
                                                'Resolution', 'Status'):
                     continue
                 name = 'TT{0}{1}'.format(s.title(), mname)
-                mc = 'python trac.{0}_ticket("{1}", <f-args>)'.format(s, fname)
+                mc = 'python trac.{0}_ticket("{1}", <q-args>)'.format(s, fname)
                 command = 'com! -nargs=? {0} {1} {2}'.format(comp, name, mc)
                 vim.command(command)
 
@@ -702,7 +702,7 @@ class Ticket(object):
                 v = get_time(ticket[3][f['name']], True)
             else:
                 v = ticket[3].get(f['name'], '')
-            str_ticket.append(' * {0:>{2}}: {1}'.format(f['label'], v,
+            str_ticket.append(u' * {0:>{2}}: {1}'.format(f['label'], v,
                                                      self.max_label_width))
 
         str_ticket.append("")
@@ -721,21 +721,21 @@ class Ticket(object):
             new_submission = [my_time, change[1]]
             if submission != new_submission:
                 str_ticket.append("")
-                str_ticket.append('== {0} ({1}) =='.format(my_time, change[1]))
+                str_ticket.append(u'== {0} ({1}) =='.format(my_time,
+                                                            change[1]))
                 str_ticket.append("")
                 submission = new_submission
             if change[2] == 'comment':
                 str_ticket.append(change[4])
             elif change[2] in ('summary', 'description'):
-                str_ticket.append("''{0}'' changed".format(change[2]))
+                str_ticket.append("{0} changed".format(change[2]))
             else:
                 label = self.get_label(change[2])
                 if change[3]:
-                    str_ticket.append(" * '''{0}''': ''{1}'' > ''{2}''".format(
-                        label, change[3], change[4]))
+                    str_ticket.append(u" * {0}: {1} > {2}".format(label,
+                        change[3], change[4]))
                 else:
-                    str_ticket.append(" * '''{0}''': ''{1}''".format(label,
-                        change[4]))
+                    str_ticket.append(u" * {0}: {1}".format(label, change[4]))
 
         str_ticket.append("")
         str_ticket.append('== Action ==')
@@ -865,17 +865,17 @@ def timeline(server, on=None, author=None):
         str_feed.append(strftime("%Y-%m-%d %H:%M:%S", item.updated_parsed))
 
         if 'ticket' in item.category:
-            m = re.match(r"^Ticket #(\d+)", item.title)
-            str_feed.append("Ticket:>> {0}".format(m.group(1)))
+            m = re.match(r'^Ticket #(\d+)', item.title)
+            str_feed.append('Ticket:>> {0}'.format(m.group(1)))
         if 'wiki' in item.category:
-            str_feed.append("Wiki:>> {0}".format(item.title.split(' ', 1)[0]))
+            str_feed.append('Wiki:>> {0}'.format(item.title.split(' ', 1)[0]))
         if 'changeset' in item.category:
-            m = re.match(r"^Changeset \[([\w]+)\]:", item.title)
-            str_feed.append("Changeset:>> {0}".format(m.group(1)))
+            m = re.match(r'^Changeset \[(\w+)\]:', item.title)
+            str_feed.append('Changeset:>> {0}'.format(m.group(1)))
 
         str_feed.append(item.title)
-        str_feed.append('Author: {0}'.format(item.author))
-        str_feed.append("Link: {0}".format(item.link))
+        str_feed.append(u'Author: {0}'.format(item.author))
+        str_feed.append(u'Link: {0}'.format(item.link))
         str_feed.append('')
 
     return '\n'.join(str_feed)
