@@ -39,10 +39,10 @@ example of django trac server:
         \ 'scheme': 'https',
         \ 'auth': 'USERNAME:PASSWORD',
         \ 'server': 'code.djangoproject.com',
-        \ 'rpc_auth': '/login/xmlrpc'
+        \ 'rpc_path': '/login/xmlrpc'
         \ }
 
-By default, scheme and rpc_auth have values http and /login/rpc.
+By default, scheme and rpc_path have values http and /login/rpc.
 
 If you define more than one trac server, you can also choose a default server
 that will be selected when a vim session starts. To define the default server

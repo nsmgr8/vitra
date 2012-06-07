@@ -48,7 +48,7 @@ def map_commands(nmaps):
 
 class HTTPDigestTransport(xmlrpclib.Transport):
     def __init__(self, scheme, username, password, realm):
-        super(HTTPDigestTransport, self).__init__()
+        xmlrpclib.Transport.__init__(self)
         self.username = username
         self.password = password
         self.realm = realm
