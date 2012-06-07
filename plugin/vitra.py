@@ -46,6 +46,10 @@ def map_commands(nmaps):
         vim.command('nnoremap <buffer> {0} {1}'.format(*m))
 
 
+def print_error(e):
+    vim.command('echoerr "Error: {0}"'.format(e))
+
+
 class HTTPDigestTransport(xmlrpclib.Transport):
     def __init__(self, scheme, username, password, realm):
         xmlrpclib.Transport.__init__(self)
@@ -420,15 +424,12 @@ class AttachmentWindow(NonEditableWindow):
 
 
 class ChangesetWindow(NonEditableWindow):
-    def on_write(self):
-        self.command('set ft=diff')
-        self.command('silent %s/\r//g')
-        self.command('norm gg')
-        super(ChangesetWindow, self).on_write()
-
     def load(self, changeset):
         self.command('setlocal modifiable')
         self.command('silent Nread {0}?format=diff'.format(changeset))
+        self.command('set ft=diff')
+        self.command('silent %s/\r//g')
+        self.command('norm gg')
         self.on_write()
 
 
@@ -441,25 +442,28 @@ class Wiki(object):
         self.current = {}
 
     def get_all(self):
-        self.pages = trac.server.wiki.getAllPages()
-        return self.pages
+        try:
+            self.pages = trac.server.wiki.getAllPages()
+            return self.pages
+        except Exception as e:
+            print_error(e)
+            return []
 
-    def get(self, name, revision=None):
+    def get(self, name):
         try:
             name = name.strip()
             self.attachments = []
             self.current = {'name': name}
-            if revision is not None:
-                text = trac.server.wiki.getPage(name, revision)
+            text = trac.server.wiki.getPage(name)
+            self.current = self.get_page_info(name)
+            self.attachments = self.list_attachments()
+        except xmlrpclib.Fault as e:
+            if e.faultCode == 404:
+                text = "Page doesn't exist. Describe {0} here.".format(name)
             else:
-                text = trac.server.wiki.getPage(name)
-                self.current = self.get_page_info(name)
-                self.attachments = self.list_attachments()
-        except:
-            if revision is None:
-                text = "Describe {0} here.".format(name)
-            else:
-                text = ''
+                text = "Error: {0}".format(e.faultString)
+        except Exception as e:
+                text = "Error: {0}".format(e)
         return text
 
     def get_html(self):
@@ -467,8 +471,8 @@ class Wiki(object):
             return ''
         try:
             return trac.server.wiki.getPageHTML(self.current.get('name'))
-        except:
-            return ''
+        except Exception as e:
+            return str(e)
 
     def save(self, comment):
         try:
@@ -499,20 +503,34 @@ class Wiki(object):
             return info
         except:
             vim.command('echoerr "Cannot get page info"')
-            return {}
+            return {'name': page}
 
     def add_attachment(self, file):
         file_name = os.path.basename(file)
         path = '{0}/{1}'.format(self.current.get('name'), file_name)
         attachment = xmlrpclib.Binary(open(file).read())
-        trac.server.wiki.putAttachment(path, attachment)
+        try:
+            trac.server.wiki.putAttachment(path, attachment)
+            return True
+        except Exception as e:
+            print_error(e)
+            return False
 
     def get_attachment(self, file):
-        buffer = trac.server.wiki.getAttachment(file)
-        save_buffer(buffer.data, file)
+        try:
+            buffer = trac.server.wiki.getAttachment(file)
+            save_buffer(buffer.data, file)
+            return True
+        except Exception as e:
+            print_error(e)
+            return False
 
     def list_attachments(self):
-        return trac.server.wiki.listAttachments(self.current.get('name'))
+        try:
+            return trac.server.wiki.listAttachments(self.current.get('name'))
+        except Exception as e:
+            print_error(e)
+            return []
 
     def get_options(self):
         if not self.pages:
@@ -539,14 +557,20 @@ class Ticket(object):
         }
         self.filters = {}
         self.page = 1
+        self.total_pages = 0
         self.attachments = []
 
     def get_fields(self):
-        fields = trac.server.ticket.getTicketFields()
+        if self.fields:
+            return
+        try:
+            fields = trac.server.ticket.getTicketFields()
+        except Exception as e:
+            print_error(e)
+            return
         self.options = {}
-        self.fields = []
+        self.fields = fields
         for f in fields:
-            self.fields.append(f)
             if 'options' in f:
                 self.options[f['name']] = f['options']
         self.max_label_width = max([len(f['label']) for f in self.fields])
@@ -629,7 +653,12 @@ class Ticket(object):
 
     @property
     def number_tickets(self):
-        total = len(trac.server.ticket.query(self.query_string(True)))
+        try:
+            total = len(trac.server.ticket.query(self.query_string(True)))
+        except Exception as e:
+            print_error(e)
+            self.total_pages = 0
+            return 0
         max_regex = re.compile('max=(\d*)')
         res = max_regex.search(self.query_string())
         if res:
@@ -646,8 +675,11 @@ class Ticket(object):
 
     def get_all(self):
         multicall = xmlrpclib.MultiCall(trac.server)
-        for ticket in trac.server.ticket.query(self.query_string()):
-            multicall.ticket.get(ticket)
+        try:
+            for ticket in trac.server.ticket.query(self.query_string()):
+                multicall.ticket.get(ticket)
+        except Exception as e:
+            return ' || Error: {0}'.format(e)
         tickets = multicall()
         self.tickets = tickets
 
@@ -658,11 +690,15 @@ class Ticket(object):
             columns.remove('resolution')
 
         ticket_list = [' || '.join([c.title() for c in columns])]
-        for ticket in tickets:
-            str_ticket = [str(ticket[0]), truncate_words(ticket[3]['summary'])]
-            for f in columns[2:]:
-                str_ticket.append(ticket[3].get(f, ''))
-            ticket_list.append(' || '.join(str_ticket))
+        try:
+            for ticket in tickets:
+                str_ticket = [str(ticket[0]),
+                              truncate_words(ticket[3]['summary'])]
+                for f in columns[2:]:
+                    str_ticket.append(ticket[3].get(f, ''))
+                ticket_list.append(' || '.join(str_ticket))
+        except Exception as e:
+            return ' || Error: {0}'.format(e)
 
         ticket_list.append('')
         for k, v in self.sorter.iteritems():
@@ -693,7 +729,7 @@ class Ticket(object):
             ticket_changelog = trac.server.ticket.changeLog(tid)
             self.current_component = ticket[3].get("component")
             actions = self.get_actions()
-            self.list_attachments()
+            self.attachments = self.list_attachments()
         except (TypeError, ValueError):
             return 'Please select a ticket'
         except Exception as e:
@@ -762,23 +798,46 @@ class Ticket(object):
         return None
 
     def create(self, description, summary, attributes={}):
-        return trac.server.ticket.create(summary, description, attributes)
+        try:
+            return trac.server.ticket.create(summary, description, attributes)
+        except Exception as e:
+            print_error(e)
+            return None
 
     def get_attachment(self, file):
-        buffer = trac.server.ticket.getAttachment(self.current.get('id'), file)
-        save_buffer(buffer.data, file)
+        try:
+            buffer = trac.server.ticket.getAttachment(self.current.get('id'),
+                                                      file)
+            save_buffer(buffer.data, file)
+            return True
+        except Exception as e:
+            print_error(e)
+            return False
 
     def add_attachment(self, file, comment=''):
         file_name = os.path.basename(file)
-        trac.server.ticket.putAttachment(self.current.get('id'), file_name,
+        try:
+            trac.server.ticket.putAttachment(self.current.get('id'), file_name,
                 comment, xmlrpclib.Binary(open(file).read()))
+            return True
+        except Exception as e:
+            print_error(e)
+            return False
 
     def list_attachments(self):
-        a_attach = trac.server.ticket.listAttachments(self.current.get('id'))
-        self.attachments = [a[0] for a in a_attach]
+        try:
+            return [a[0] for a in
+                    trac.server.ticket.listAttachments(self.current.get('id'))]
+        except Exception as e:
+            print_error(e)
+            return []
 
     def get_actions(self):
-        actions = trac.server.ticket.getActions(self.current.get('id'))
+        try:
+            actions = trac.server.ticket.getActions(self.current.get('id'))
+        except Exception as e:
+            print_error(e)
+            return []
         self.actions = []
         for action in actions:
             if action[3]:
@@ -832,7 +891,10 @@ class Ticket(object):
 
 
 def search(search_pattern):
-    a_search = trac.server.search.performSearch(search_pattern)
+    try:
+        a_search = trac.server.search.performSearch(search_pattern)
+    except Exception as e:
+        return "Error: {0}".format(e)
     result = [
         "Results for {0}".format(search_pattern),
         "(Hit <enter> on a line containing :>>)",
@@ -949,7 +1011,7 @@ class Trac(object):
             self.history[type_].append(page)
 
     def traverse_history(self, type_, current, direction):
-        if not direction or not self.history.get(type_):
+        if not all([current, direction, self.history.get(type_)]):
             return current
         loc = self.history[type_].index(current)
         try:
@@ -980,15 +1042,12 @@ class Trac(object):
     def ticket_view(self, tid=None, direction=None):
         try:
             tid = int(tid) if tid else self.ticket.current.get('id')
+            tid = self.traverse_history('ticket', tid, direction)
         except (ValueError, TypeError):
             print 'Please provide a valid ticket id'
             return
 
-        tid = self.traverse_history('ticket', tid, direction)
-
-        if not self.ticket.fields:
-            self.ticket.get_fields()
-
+        self.ticket.get_fields()
         contents = {
             'ticket': self.ticket.get(tid),
             'edit': '',
@@ -1008,7 +1067,7 @@ class Trac(object):
                     self.uiticket.windows['ticket'].load(contents['ticket'])
                 except Exception as e:
                     print 'Could not format the content'
-                    print 'Error: {0}'.format(e)
+                    print_error(e)
         self.set_history('ticket', tid)
 
     def search_view(self, keyword):
@@ -1076,7 +1135,8 @@ class Trac(object):
 
         attribs = {'type': type_} if type_ else {}
         tid = self.ticket.create(description, summary, attribs)
-        self.ticket_view(tid)
+        if tid is not None:
+            self.ticket_view(tid)
 
     def update_ticket(self, option, value=None):
         text = self.ticket_content
@@ -1117,15 +1177,15 @@ class Trac(object):
         bname = os.path.basename(vim.current.buffer.name)
         if bname.startswith('Wiki: '):
             print "Adding attachment to wiki", self.wiki.current.get('name')
-            self.wiki.add_attachment(file)
-            self.wiki_view()
-            print 'Done.'
+            if self.wiki.add_attachment(file):
+                self.wiki_view()
+                print 'Done.'
         elif bname.startswith('Ticket: '):
             print "Adding attachment to ticket", self.ticket.current.get('id')
             comment = self.ticket_content
-            self.ticket.add_attachment(file, comment)
-            self.ticket_view()
-            print 'Done.'
+            if self.ticket.add_attachment(file, comment):
+                self.ticket_view()
+                print 'Done.'
         else:
             print "You need an active ticket or wiki open!"
 
@@ -1134,13 +1194,13 @@ class Trac(object):
         if bname.startswith('Wiki: '):
             print "Retrieving attachment from wiki",
             print self.wiki.current.get('name')
-            self.wiki.get_attachment(file)
-            print 'Done.'
+            if self.wiki.get_attachment(file):
+                print 'Done.'
         elif bname.startswith('Ticket: '):
             print "Retrieving attachment from ticket",
             print self.ticket.current.get('id')
-            self.ticket.get_attachment(file)
-            print 'Done.'
+            if self.ticket.get_attachment(file):
+                print 'Done.'
         else:
             print "You need an active ticket or wiki open!"
 
