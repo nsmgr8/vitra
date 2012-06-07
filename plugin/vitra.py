@@ -879,7 +879,8 @@ def timeline(server, on=None, author=None):
             str_feed.append('Changeset:>> {0}'.format(m.group(1)))
 
         str_feed.append(item.title)
-        str_feed.append(u'Author: {0}'.format(item.author))
+        if item.get('author'):
+            str_feed.append(u'Author: {0}'.format(item.author))
         str_feed.append(u'Link: {0}'.format(item.link))
         str_feed.append('')
 
@@ -1109,6 +1110,8 @@ class Trac(object):
             self.wiki_view(line.replace('Wiki:>> ', '').strip())
         elif 'Changeset:>>' in line:
             self.changeset_view(line.replace('Changeset:>> ', '').strip())
+        elif line.startswith('Link: '):
+            webbrowser.open(line.replace('Link: ', ''))
 
     def add_attachment(self, file):
         bname = os.path.basename(vim.current.buffer.name)
