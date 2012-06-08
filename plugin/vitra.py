@@ -249,6 +249,7 @@ class WikiWindow(Window):
             ('<2-LeftMouse>', ':python trac.wiki_view("<C-R><C-W>")<cr>'),
             (':w<cr>', ':TWSave<cr>'),
             ('<tab>',  '/^=.*=<cr>:nohl<cr>'),
+            ('<c-l>', ':py trac.wiki_view()<cr><c-l>'),
         ])
         vim.command('setlocal syntax=tracwiki')
 
@@ -306,6 +307,7 @@ class TicketListWindow(NonEditableWindow):
         map_commands([
             ('<cr>', '0:python trac.ticket_view("<c-r><c-w>")<cr>'),
             ('<2-LeftMouse>', '0:python trac.ticket_view("<c-r><c-w>")<cr>'),
+            ('<c-l>', ':py trac.ticket_view()<cr><c-l>'),
         ])
 
     def on_write(self):
@@ -340,7 +342,10 @@ class TicketWindow(NonEditableWindow):
     def on_write(self):
         vim.command('setlocal syntax=tracwiki')
         self.highlight()
-        map_commands([('<tab>', '/^=.*=<cr>:nohl<cr>')])
+        map_commands([
+            ('<tab>', '/^=.*=<cr>:nohl<cr>'),
+            ('<c-l>', ':py trac.ticket_view()<cr><c-l>'),
+        ])
         super(TicketWindow, self).on_write()
 
     def highlight(self):
@@ -1011,7 +1016,7 @@ class Trac(object):
             'wiki': self.wiki.get(page),
             'attachment': '\n'.join(self.wiki.attachments),
         }
-        titles = {'wiki': page}
+        titles = {'wiki': page.replace(' ', '_')}
         if vim.eval('g:tracWikiToC') == '1':
             contents['toc'] = '\n'.join(self.wiki.get_all())
 
