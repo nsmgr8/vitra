@@ -115,7 +115,7 @@ keymaps, <tab> and <enter>. <tab> can jump to the next hyperlink and pressing
 completion for filtering wiki, ticket, changeset and author. e.g., >
     :TTimeline
     :TTimeline wiki
-    :TTimeline nasim
+    :TTimelineAuthor nasim
     :TTimeline ticket nasim
 <
 
@@ -232,7 +232,7 @@ The following commands are available for |Vitra|:
     *TAddAttachment* file_path
         Add file to the current wiki page/ticket.
 
-    *TTimeline*
+    *TTimeline* *TTimelineAuthor*
         Shows the Trac timeline.
 
     *TSearch* query

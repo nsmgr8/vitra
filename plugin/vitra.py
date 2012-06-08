@@ -106,7 +106,7 @@ class Window(object):
 
     def set_name(self, name):
         self.focus()
-        self.name = name
+        self.name = name.replace(' ', '_')
         vim.command('silent f {0}'.format(self.buffer_name))
 
     def create(self, method='new'):
@@ -426,6 +426,7 @@ class AttachmentWindow(NonEditableWindow):
 class ChangesetWindow(NonEditableWindow):
     def load(self, changeset):
         self.command('setlocal modifiable')
+        self.command('norm ggdG')
         self.command('silent Nread {0}?format=diff'.format(changeset))
         self.command('set ft=diff')
         self.command('silent %s/\r//g')
@@ -1054,7 +1055,7 @@ class Trac(object):
 
     def search_view(self, keyword):
         self.search_window.write(search(keyword))
-        self.search_window.set_name(keyword.replace(' ', '_'))
+        self.search_window.set_name(keyword)
 
     def timeline_view(self, on=None, author=None):
         self.timeline_window.write(timeline(self.server_url, on, author))
