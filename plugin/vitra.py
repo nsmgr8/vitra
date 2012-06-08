@@ -106,7 +106,7 @@ class Window(object):
 
     def set_name(self, name):
         self.focus()
-        self.name = name.replace(' ', '_')
+        self.name = name
         vim.command('silent f {0}'.format(self.buffer_name))
 
     def create(self, method='new'):
@@ -1055,7 +1055,7 @@ class Trac(object):
 
     def search_view(self, keyword):
         self.search_window.write(search(keyword))
-        self.search_window.set_name(keyword)
+        self.search_window.set_name(keyword.replace(' ', '_'))
 
     def timeline_view(self, on=None, author=None):
         self.timeline_window.write(timeline(self.server_url, on, author))
