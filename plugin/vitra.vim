@@ -49,7 +49,7 @@ com! -nargs=? -complete=customlist,ComTracServers TracServer  python trac.set_se
 com! -nargs=? -complete=customlist,ComWiki TWOpen python trac.wiki_view(<q-args>)
 com! -nargs=0 TWClose python trac.uiwiki.destroy()
 com! -nargs=* TWSave python trac.wiki.save(<q-args>)
-com! -nargs=0 TWInfo python print trac.wiki.get_page_info()
+com! -nargs=0 TWInfo python print trac.wiki.current
 
 com! -nargs=? -complete=customlist,ComTicket TTOpen python trac.ticket_view(<q-args>)
 com! -nargs=0 TTClose python trac.uiticket.destroy()

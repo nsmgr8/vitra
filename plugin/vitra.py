@@ -454,9 +454,13 @@ class Wiki(object):
             name = name.strip()
             self.attachments = []
             self.current = {'name': name}
-            text = trac.server.wiki.getPage(name)
-            self.current = self.get_page_info(name)
-            self.attachments = self.list_attachments()
+            mc = xmlrpclib.MultiCall(trac.server)
+            mc.wiki.getPage(name)
+            mc.wiki.getPageInfo(name)
+            mc.wiki.listAttachments(name)
+            text, info, attachments = [c for c in mc()]
+            self.current = info
+            self.attachments = attachments
         except xmlrpclib.Fault as e:
             if e.faultCode == 404:
                 text = "Page doesn't exist. Describe {0} here.".format(name)
@@ -495,16 +499,6 @@ class Wiki(object):
             vim.command('echoerr "Not committing the changes."')
             vim.command('echoerr "Error: {0}"'.format(e.faultString))
 
-    def get_page_info(self, page=None):
-        try:
-            if not page:
-                page = self.current.get('name')
-            info = trac.server.wiki.getPageInfo(page)
-            return info
-        except:
-            vim.command('echoerr "Cannot get page info"')
-            return {'name': page}
-
     def add_attachment(self, file):
         file_name = os.path.basename(file)
         path = '{0}/{1}'.format(self.current.get('name'), file_name)
@@ -524,13 +518,6 @@ class Wiki(object):
         except Exception as e:
             print_error(e)
             return False
-
-    def list_attachments(self):
-        try:
-            return trac.server.wiki.listAttachments(self.current.get('name'))
-        except Exception as e:
-            print_error(e)
-            return []
 
     def get_options(self):
         if not self.pages:
@@ -719,17 +706,21 @@ class Ticket(object):
     def get(self, tid):
         try:
             tid = int(tid)
-            ticket = trac.server.ticket.get(tid)
+            mc = xmlrpclib.MultiCall(trac.server)
+            mc.ticket.get(tid)
+            mc.ticket.changeLog(tid)
+            mc.ticket.listAttachments(tid)
+            mc.ticket.getActions(tid)
+            ticket, changelog, attachments, actions = [c for c in mc()]
             self.current = {
                 'id': tid,
                 '_ts': ticket[3].get('_ts'),
                 'summary': ticket[3]['summary'],
                 'description': ticket[3]['description'],
             }
-            ticket_changelog = trac.server.ticket.changeLog(tid)
             self.current_component = ticket[3].get("component")
-            actions = self.get_actions()
-            self.attachments = self.list_attachments()
+            self.get_actions(actions=actions)
+            self.attachments = [a[0] for a in attachments]
         except (TypeError, ValueError):
             return 'Please select a ticket'
         except Exception as e:
@@ -754,7 +745,7 @@ class Ticket(object):
         str_ticket.append("= Changelog =")
 
         submission = [None, None]
-        for change in ticket_changelog:
+        for change in changelog:
             if not change[4] or change[2].startswith('_'):
                 continue
 
@@ -824,20 +815,7 @@ class Ticket(object):
             print_error(e)
             return False
 
-    def list_attachments(self):
-        try:
-            return [a[0] for a in
-                    trac.server.ticket.listAttachments(self.current.get('id'))]
-        except Exception as e:
-            print_error(e)
-            return []
-
-    def get_actions(self):
-        try:
-            actions = trac.server.ticket.getActions(self.current.get('id'))
-        except Exception as e:
-            print_error(e)
-            return []
+    def get_actions(self, actions):
         self.actions = []
         for action in actions:
             if action[3]:
@@ -850,16 +828,18 @@ class Ticket(object):
                                                              options[1]))
             else:
                 self.actions.append(action[0])
-        return actions
 
     def act(self, action, comment=''):
         action = action.split()
         try:
             name, options = action[0], action[1:]
+            actions = trac.server.ticket.getActions(self.current.get('id'))
         except IndexError:
             vim.command("echoerr 'No action requested'")
             return
-        actions = self.get_actions()
+        except Exception as e:
+            print_error(e)
+            return
         action = None
         for a in actions:
             if a[0] == name:
