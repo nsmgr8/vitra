@@ -480,14 +480,14 @@ class Wiki(object):
 
     def save(self, comment):
         try:
-            info = self.get_page_info()
+            info = trac.server.wiki.getPageInfo(self.current.get('name'))
             if (get_time(info['lastModified']) >
                     get_time(self.current.get('lastModified'))):
                 vim.command("echoerr 'This page has been modified in another "
                             "session. Not commiting the changes.'")
                 return
         except:
-            if not confirm('Cannot confirm last modification time. '
+            if not confirm('Cannot confirm last modification time.\n'
                            'Do you want to continue to save?'):
                 return
         if not comment:
@@ -498,6 +498,8 @@ class Wiki(object):
         except xmlrpclib.Fault as e:
             vim.command('echoerr "Not committing the changes."')
             vim.command('echoerr "Error: {0}"'.format(e.faultString))
+        except Exception as e:
+            print_error(e)
 
     def add_attachment(self, file):
         file_name = os.path.basename(file)
