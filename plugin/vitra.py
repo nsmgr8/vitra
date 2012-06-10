@@ -254,12 +254,16 @@ class TicketUI(UI):
 class WikiWindow(Window):
     def on_create(self):
         map_commands([
-            ('<c-]>', ':python trac.wiki_view("<C-R><C-W>")<cr>'),
-            ('wo', 'F:lvt<space>"zy:python trac.wiki_view("<C-R>z")<cr>'),
-            ('w]', 'F:lvt]"zy:python trac.wiki_view("<C-R>z")<cr>'),
-            ('<2-LeftMouse>', ':python trac.wiki_view("<C-R><C-W>")<cr>'),
+            ('<c-]>', ':python trac.wiki_view("<c-r><c-w>")<cr>'),
+            ('wo', 'f:lmy/[ \]]<cr>:nohl<cr>hv`y"zy'
+                   ':python trac.wiki_view("<c-r>z")<cr>'),
+            ('w]', '/[\[\"]<cr>:nohl<cr>lmy/[\]\"]<cr>:nohl<cr>hv`y"zy'
+                   ':python trac.wiki_view("<c-r>z")<cr>'),
+            ('<2-LeftMouse>', ':python trac.wiki_view("<c-r><c-w>")<cr>'),
             (':w<cr>', ':TWSave<cr>'),
             ('<tab>',  '/^=.*=<cr>:nohl<cr>'),
+            ('<c-tab>', '/\\(wiki:\\\|[[\\\|\<[A-Z][a-z]*[A-Z]\\)<cr>'
+                        ':nohl<cr>'),
             ('<c-l>', ':python trac.wiki_view()<cr><c-l>'),
         ])
         vim.command('setlocal syntax=tracwiki')
