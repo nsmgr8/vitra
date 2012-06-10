@@ -115,7 +115,7 @@ keymaps, <tab> and <enter>. <tab> can jump to the next hyperlink and pressing
 completion for filtering wiki, ticket, changeset and author. e.g., >
     :TTimeline
     :TTimeline wiki
-    :TTimelineAuthor nasim
+    :TTimeline nasim
     :TTimeline ticket nasim
 <
 
@@ -232,8 +232,9 @@ The following commands are available for |Vitra|:
     *TAddAttachment* file_path
         Add file to the current wiki page/ticket.
 
-    *TTimeline* *TTimelineAuthor*
-        Shows the Trac timeline.
+    *TTimeline*
+        Shows the Trac timeline. Optionally can take 'wiki', 'ticket' or
+        'changeset' and "author" to filter the timeline.
 
     *TSearch* query
         Searches the trac server for the given query.
@@ -266,10 +267,11 @@ Wiki window has -
     <C-]>: opens a wiki page under cursor, i.e., :TWOpen <C-R><C-W>
     <double-click>: same as <C-]> for mouse
     <wo>: opens the wiki page which is written as [wiki:some/page page], the
-        cursor must be on 'some/page'
-    <w]>: opens the wiki page which is written as [wiki:some/page], the cursor
-        must be on 'some/page'
+        cursor must be before : (semicolon)
+    <w]>: opens the wiki page which is written as wiki:"some/page" or
+        [[some/page]], the cursor must be before 'some/page'
     <tab>: jumps to the next header
+    <c-tab>: jumps to the next wiki link
 
 Wiki Preview has -
     <tab>: jumps to the next hyperlink
@@ -286,6 +288,8 @@ Search and Timeline window has -
 
 Server window has -
     <enter>: sets the current Trac server to the name under cursor.
+
+<c-l> reloads ticket or wiki UI, when on a ticket or wiki buffer respectively.
 
 ==============================================================================
 6. Options                                                       *VitraOptions*

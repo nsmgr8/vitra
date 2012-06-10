@@ -894,6 +894,8 @@ def timeline(server, on=None, author=None):
     query = 'max={0}&format=rss'.format(vim.eval('tracTimelineMax'))
     if on in ('wiki', 'ticket', 'changeset'):
         query = '{0}=on&{1}'.format(on, query)
+    elif not author:
+        author = on
     if author:
         query = 'authors={0}&{1}'.format(author, query)
     feed = '{scheme}://{server}/timeline?{q}'.format(q=query, **server)
@@ -904,12 +906,14 @@ def timeline(server, on=None, author=None):
 
         if 'ticket' in item.category:
             m = re.match(r'^Ticket #(\d+)', item.title)
-            str_feed.append('Ticket:>> {0}'.format(m.group(1)))
+            if m:
+                str_feed.append('Ticket:>> {0}'.format(m.group(1)))
         if 'wiki' in item.category:
             str_feed.append('Wiki:>> {0}'.format(item.title.split(' ', 1)[0]))
         if 'changeset' in item.category:
-            m = re.match(r'^Changeset \[(\w+)\]:', item.title)
-            str_feed.append('Changeset:>> {0}'.format(m.group(1)))
+            m = re.match(r'^Changeset .*\[(\w+)\]:', item.title)
+            if m:
+                str_feed.append('Changeset:>> {0}'.format(m.group(1)))
 
         str_feed.append(item.title)
         if item.get('author'):
