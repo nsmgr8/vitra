@@ -2,6 +2,13 @@
 
                                 *Vitra* (Trac UI)
 
+            ____   ____.__  __                   ____    _______
+            \   \ /   /|__|/  |_____________    /_   |   \   _  \
+             \   Y   / |  \   __\_  __ \__  \    |   |   /  /_\  \
+              \     /  |  ||  |  |  | \// __ \_  |   |   \  \_/   \
+               \___/   |__||__|  |__|  (____  /  |___| /\ \_____  /
+                                            \/         \/       \/
+
 ==============================================================================
 Contents                                                                *Vitra*
 
@@ -47,13 +54,23 @@ By default, scheme and rpc_path have values http and /login/rpc.
 If you define more than one trac server, you can also choose a default server
 that will be selected when a vim session starts. To define the default server
 set the |g:tracDefaultServer| in your .vimrc to the server key of it. e.g.,
-
+>
     let g:tracDefaultServer = 'djangoproject'
-
+<
 It is also possible to change the trac server in the running vim session. Use
 |TracServer| command to change the trac server to use. It can offer tab
 completion for available servers that are defined in |g:tracServerList|. Note
 that, this does not set the server to be default for next sessions.
+
+Beside HTTP(S) basic authentication, vitra also supports HTTP Digest
+Authentication. To use digest authentication provide the auth realm to the
+'auth' key in the server dictionary. e.g.,
+>
+    let g:tracServerList['mydigesttrac'] = {
+        \ 'server': 'localhost:8080/project',
+        \ 'auth': 'username:password:digest realm'
+        \ }
+<
 
 ==============================================================================
 3. Usage                                                           *VitraUsage*
