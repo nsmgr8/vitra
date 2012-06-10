@@ -54,7 +54,11 @@ def map_commands(nmaps):
 
 
 def print_error(e):
-    vim.command('echoerr "Error: {0}"'.format(e))
+    err = str(e)
+    if '"' in err:
+        print err
+    else:
+        vim.command('echoerr "Error: {0}"'.format(err))
 
 
 class HTTPDigestTransport(xmlrpclib.Transport):
@@ -344,15 +348,14 @@ class TicketListWindow(NonEditableWindow):
 
 class TicketWindow(NonEditableWindow):
     def on_write(self):
-        vim.command('setlocal syntax=tracwiki')
-        self.highlight()
+        super(TicketWindow, self).on_write()
         map_commands([
             ('<tab>', '/^=.*=<cr>:nohl<cr>'),
             ('<c-l>', ':python trac.ticket_view()<cr><c-l>'),
         ])
-        super(TicketWindow, self).on_write()
 
-    def highlight(self):
+    def on_create(self):
+        vim.command('setlocal syntax=tracwiki')
         vim.command('syn match Keyword /^ \+\*[^:]*:.*$/ contains=Title')
         vim.command('syn match Title /^ \+\*[^:]*:/ contained')
         vim.command('syn match Underlined /\[\d*\]\w*/ contains=Ignore')
@@ -371,8 +374,6 @@ class TicketWindow(NonEditableWindow):
         self.clear()
         self.command('silent r!lynx -dump {0}'.format(file_name))
         self.on_write()
-        vim.command('setlocal syntax=text')
-        self.highlight()
         map_commands([
             ('<tab>',
                 '/^\w\{3\} [0-9/]\{10\} [0-9:]\{5\} (.*)$<cr>:nohl<cr>'),
