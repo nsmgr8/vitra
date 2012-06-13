@@ -396,16 +396,13 @@ class SearchWindow(NonEditableWindow):
             ('<cr>', ':python trac.open_line()<cr>'),
         ])
         vim.command('setlocal syntax=tracwiki')
-
-    def on_write(self):
-        super(SearchWindow, self).on_write()
         vim.command('syn match Keyword /\w*:>> .*$/ contains=Title')
         vim.command('syn match Title /\w*:>>/ contained')
 
 
 class TimelineWindow(SearchWindow):
-    def on_write(self):
-        super(TimelineWindow, self).on_write()
+    def on_create(self):
+        super(TimelineWindow, self).on_create()
         vim.command('syn match Identifier /^[0-9\-]\{10\}\s.*$/ '
                     'contains=Statement')
         vim.command('syn match Statement /[0-9:]\{8\}$/ contained')
@@ -413,16 +410,13 @@ class TimelineWindow(SearchWindow):
 
 class ServerWindow(NonEditableWindow):
     def on_create(self):
-        map_commands([
-            ('<cr>', '0:python trac.set_server("<c-r><c-w>")<cr>'
-                     ':python trac.server_view()<cr>')])
-
-    def on_write(self):
-        super(ServerWindow, self).on_write()
         vim.command('syn match Keyword /^\w*:/')
         vim.command('syn match Identifier /^\*\w*:/')
         vim.command('syn match Title /^!\w*:/')
         vim.command('syn match Special /^\*!\w*:/')
+        map_commands([
+            ('<cr>', '0:python trac.set_server("<c-r><c-w>")<cr>'
+                     ':python trac.server_view()<cr>')])
 
 
 class AttachmentWindow(NonEditableWindow):
