@@ -929,8 +929,6 @@ class Trac(object):
 
         self.server_window = ServerWindow(prefix='Trac', name='Servers')
         self.timeline_window = TimelineWindow(prefix='Timeline')
-        self.search_window = SearchWindow(prefix='Search')
-        self.changeset_window = ChangesetWindow(prefix='Changeset')
 
         self.default_comment = vim.eval('tracDefaultComment')
         self.set_server(vim.eval('tracDefaultServer'))
@@ -1039,10 +1037,6 @@ class Trac(object):
                     print_error(e)
         self.set_history('ticket', tid)
 
-    def search_view(self, keyword):
-        self.search_window.write(search(keyword))
-        self.search_window.set_name(keyword.replace(' ', '_'))
-
     def timeline_view(self, on=None, author=None):
         self.timeline_window.write(timeline(self.server_url, on, author))
         self.timeline_window.set_name(self.server_name)
@@ -1057,13 +1051,18 @@ class Trac(object):
             servers = servers.replace(default, '*{0}'.format(default))
         servers = servers.replace(current, '!{0}'.format(current))
         self.server_window.write(servers)
-        print 'Trac server is set to', self.server_name
+
+    def search_view(self, keyword):
+        search_window = SearchWindow(name=keyword.replace(' ', '_'),
+                prefix='Search\ ({0})'.format(self.server_name))
+        search_window.write(search(keyword))
 
     def changeset_view(self, changeset):
         cs_url = '{scheme}://{server}/changeset/{changeset}'.format(
                 changeset=changeset, **self.server_url)
-        self.changeset_window.load(cs_url)
-        self.changeset_window.set_name(changeset)
+        changeset_window = ChangesetWindow(name=changeset,
+                prefix='Changeset\ ({0})'.format(self.server_name))
+        changeset_window.load(cs_url)
 
     def sort_ticket(self, sorter, attr):
         self.ticket.set_sort_attr(sorter, attr)
