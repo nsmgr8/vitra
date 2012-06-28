@@ -48,7 +48,7 @@ com! -nargs=? -complete=customlist,ComTracServers TracServer  python trac.set_se
 
 com! -nargs=? -complete=customlist,ComWiki TWOpen python trac.wiki_view(<q-args>)
 com! -nargs=0 TWClose python trac.uiwiki.destroy()
-com! -nargs=* TWSave python trac.wiki.save(<q-args>)
+com! -nargs=* TWSave python trac.save_wiki(<q-args>)
 com! -nargs=0 TWInfo python print trac.wiki.current
 
 com! -nargs=? -complete=customlist,ComTicket TTOpen python trac.ticket_view(<q-args>)
@@ -93,22 +93,22 @@ endfun
 
 fun ComWiki(A, L, P)
     python trac.wiki.get_options()
-    return filter(split(g:tracOptions, '|'), 'v:val =~ "^' . a:A . '"')
+    return filter(g:tracOptions, 'v:val =~ "^' . a:A . '"')
 endfun
 
 fun ComTicket(A, L, P)
     python trac.ticket.get_options(type_='history')
-    return filter(split(g:tracOptions, '|'), 'v:val =~ "^' . a:A . '"')
+    return filter(g:tracOptions, 'v:val =~ "^' . a:A . '"')
 endfun
 
 fun ComSort(A, L, P)
     python trac.ticket.get_options(type_='field')
-    return filter(split(g:tracOptions, '|'), 'v:val =~ "^' . a:A . '"')
+    return filter(g:tracOptions, 'v:val =~ "^' . a:A . '"')
 endfun
 
 fun ComAction(A, L, P)
     python trac.ticket.get_options(type_='action')
-    return filter(split(g:tracOptions, '|'), 'v:val =~ "^' . a:A . '"')
+    return filter(g:tracOptions, 'v:val =~ "^' . a:A . '"')
 endfun
 
 pyfile <sfile>:p:h/vitra.py
