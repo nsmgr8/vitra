@@ -1149,7 +1149,7 @@ class Trac(object):
             webbrowser.open(line.replace('Link: ', ''))
 
     def add_attachment(self, file):
-        bname = os.path.basename(vim.current.buffer.name)
+        bname = vim.eval("expand('%', ':.')")
         if bname.startswith('Wiki: '):
             print "Adding attachment to wiki", self.wiki.current.get('name')
             if self.wiki.add_attachment(file):
@@ -1165,7 +1165,7 @@ class Trac(object):
             print "You need an active ticket or wiki open!"
 
     def get_attachment(self, file):
-        bname = os.path.basename(vim.current.buffer.name)
+        bname = vim.eval("expand('%', ':.')")
         if bname.startswith('Wiki: '):
             print "Retrieving attachment from wiki",
             print self.wiki.current.get('name')
@@ -1184,7 +1184,7 @@ class Trac(object):
         self.uiticket.update({'edit': text}, {})
 
     def preview(self):
-        bname = os.path.basename(vim.current.buffer.name)
+        bname = vim.eval("expand('%', ':.')")
         if bname.startswith('Wiki: '):
             wikitext = self.wiki_content
         elif bname.startswith('Ticket: '):
@@ -1201,11 +1201,14 @@ class Trac(object):
 
     def back(self, forward=False):
         direction = 1 if forward else -1
-        bname = os.path.basename(vim.current.buffer.name)
+        bname = vim.eval("expand('%', ':.')")
         if bname.startswith('Wiki: '):
             self.wiki_view(direction=direction)
-        if bname.startswith('Ticket: '):
+        elif bname.startswith('Ticket: '):
             self.ticket_view(direction=direction)
+        else:
+            print "You need an active ticket or wiki open!"
+            return
 
 
 def trac_init():
