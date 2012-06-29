@@ -85,6 +85,33 @@ class HTTPDigestTransport(xmlrpclib.Transport):
         return self.parse_response(f)
 
 
+try:
+    import urllib2_kerberos
+
+    class HTTPKerberosTransport(xmlrpclib.Transport):
+        def __init__(self, scheme):
+            xmlrpclib.Transport.__init__(self)
+            self.scheme = scheme
+            self._opener = urllib2.build_opener()
+            kerberos_handler = urllib2_kerberos.HTTPKerberosAuthHandler()
+            self._opener.add_handler(kerberos_handler)
+
+        def request(self, host, handler, request_body, verbose):
+            url = '{scheme}://{host}{handler}'.format(scheme=self.scheme,
+                                                    host=host, handler=handler)
+            self.verbose = verbose
+            request = urllib2.Request(url)
+            request.add_data(request_body)
+            request.add_header("User-Agent", self.user_agent)
+            request.add_header("Content-Type", "text/xml")
+
+            f = self._opener.open(request)
+            return self.parse_response(f)
+
+except ImportError:
+    pass
+
+
 class Window(object):
     def __init__(self, prefix='TYPE', name='WINDOW'):
         self.name = name
@@ -886,6 +913,13 @@ def timeline(server, on=None, author=None):
         vim.command('echoerr "Please install feedparser.py!"')
         return
 
+    parse_kwargs = {}
+    try:
+        kerberos_handler = urllib2_kerberos.HTTPKerberosAuthHandler()
+        parse_kwargs['handlers'] = [kerberos_handler]
+    except NameError:
+        pass
+
     query = 'max={0}&format=rss'.format(vim.eval('tracTimelineMax'))
     if on in ('wiki', 'ticket', 'changeset'):
         query = '{0}=on&{1}'.format(on, query)
@@ -894,7 +928,7 @@ def timeline(server, on=None, author=None):
     if author:
         query = 'authors={0}&{1}'.format(author, query)
     feed = '{scheme}://{server}/timeline?{q}'.format(q=query, **server)
-    d = feedparser.parse(feed)
+    d = feedparser.parse(feed, **parse_kwargs)
     str_feed = ["Hit <enter> on a line containing :>>", ""]
     for item in d['items']:
         str_feed.append(strftime("%Y-%m-%d %H:%M:%S", item.updated_parsed))
@@ -965,7 +999,13 @@ class Trac(object):
             transport = HTTPDigestTransport(self.server_url['scheme'], *auth)
             self.server = xmlrpclib.ServerProxy(url, transport=transport)
         else:
-            self.server = xmlrpclib.ServerProxy(url)
+            xmlprc_kwargs = {}
+            try:
+                transport = HTTPKerberosTransport(self.server_url['scheme'])
+                xmlprc_kwargs['transport'] = transport
+            except NameError:
+                pass
+            self.server = xmlrpclib.ServerProxy(url, **xmlprc_kwargs)
         self.server.__transport.user_agent = "Vitra 1.0 (Trac client for Vim)"
 
         self.wiki.initialise()
