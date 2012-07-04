@@ -923,6 +923,9 @@ def timeline(server, on=None, author=None):
 
 
 class Trac(object):
+    BASIC_AUTH = 'basic'
+    DIGEST_AUTH = 'digest'
+
     def __init__(self):
         self.wiki = Wiki()
         self.ticket = Ticket()
@@ -946,6 +949,7 @@ class Trac(object):
         return self.uiticket.windows['edit'].content
 
     def set_server(self, server):
+        self.clear()
         server_list = vim.eval('tracServerList')
         if not server:
             server = server_list.keys()[0]
@@ -956,21 +960,26 @@ class Trac(object):
             'server': url['server'],
             'rpc_path': url.get('rpc_path', '/login/rpc'),
             'auth': url.get('auth', ''),
+            'auth_type': url.get('auth_type', self.BASIC_AUTH),
         }
-        auth = url.get('auth', '').split(':')
+        auth = self.server_url['auth'].split(':')
+        auth_type = self.server_url['auth_type']
 
-        if len(auth) == 2:
+        if auth_type == self.BASIC_AUTH:
             url = '{scheme}://{auth}@{server}{rpc_path}'
-        else:
+            transport = xmlrpclib.Transport()
+        elif auth_type == self.DIGEST_AUTH:
             url = '{scheme}://{server}{rpc_path}'
-        url = url.format(**self.server_url)
-        if len(auth) == 3:
             transport = HTTPDigestTransport(self.server_url['scheme'], *auth)
-            self.server = xmlrpclib.ServerProxy(url, transport=transport)
         else:
-            self.server = xmlrpclib.ServerProxy(url)
-        self.server.__transport.user_agent = "Vitra 1.0 (Trac client for Vim)"
+            print_error('Authentication method {0} '
+                        'is not supported yet'.format(auth_type))
+            return
+        self.server = xmlrpclib.ServerProxy(url.format(**self.server_url),
+                                            transport=transport)
+        self.server.__transport.user_agent = "Vitra 1.2 (Trac client for Vim)"
 
+    def clear(self):
         self.wiki.initialise()
         self.ticket.initialise()
         self.uiwiki.destroy()

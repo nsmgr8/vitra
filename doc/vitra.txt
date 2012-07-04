@@ -44,12 +44,14 @@ example of django trac server:
     let g:tracServerList = {}
     let g:tracServerList['djangoproject'] = {
         \ 'scheme': 'https',
-        \ 'auth': 'USERNAME:PASSWORD',
         \ 'server': 'code.djangoproject.com',
-        \ 'rpc_path': '/login/xmlrpc'
+        \ 'rpc_path': '/login/xmlrpc',
+        \ 'auth': 'USERNAME:PASSWORD',
+        \ 'auth_type': 'basic'
         \ }
 
-By default, scheme and rpc_path have values http and /login/rpc.
+By default, scheme, auth_type and rpc_path have values http, basic and
+/login/rpc.
 
 If you define more than one trac server, you can also choose a default server
 that will be selected when a vim session starts. To define the default server
@@ -68,7 +70,8 @@ Authentication. To use digest authentication provide the auth realm to the
 >
     let g:tracServerList['mydigesttrac'] = {
         \ 'server': 'localhost:8080/project',
-        \ 'auth': 'username:password:digest realm'
+        \ 'auth': 'username:password:digest realm',
+        \ 'auth_type': 'digest'
         \ }
 <
 
