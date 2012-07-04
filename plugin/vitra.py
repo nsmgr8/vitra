@@ -415,7 +415,7 @@ class ServerWindow(NonEditableWindow):
         vim.command('syn match Title /^!\w*:/')
         vim.command('syn match Special /^\*!\w*:/')
         map_commands([
-            ('<cr>', '0:python trac.set_server("<c-r><c-w>")<cr>'
+            ('<cr>', '0:python trac.server="<c-r><c-w>"<cr>'
                      ':python trac.server_view()<cr>')])
 
 
@@ -925,6 +925,7 @@ def timeline(server, on=None, author=None):
 class Trac(object):
     BASIC_AUTH = 'basic'
     DIGEST_AUTH = 'digest'
+    USER_AGENT = "Vitra 1.2 (Trac client for Vim)"
 
     def __init__(self):
         self.wiki = Wiki()
@@ -937,7 +938,7 @@ class Trac(object):
         self.timeline_window = TimelineWindow(prefix='Timeline')
 
         self.default_comment = vim.eval('tracDefaultComment')
-        self.set_server(vim.eval('tracDefaultServer'))
+        self.server = vim.eval('tracDefaultServer')
         self.history = {'wiki': [], 'ticket': []}
 
     @property
@@ -948,7 +949,12 @@ class Trac(object):
     def ticket_content(self):
         return self.uiticket.windows['edit'].content
 
-    def set_server(self, server):
+    @property
+    def server(self):
+        return self._server
+
+    @server.setter
+    def server(self, server):
         self.clear()
         server_list = vim.eval('tracServerList')
         if not server:
@@ -975,9 +981,9 @@ class Trac(object):
             print_error('Authentication method {0} '
                         'is not supported yet'.format(auth_type))
             return
-        self.server = xmlrpclib.ServerProxy(url.format(**self.server_url),
+        self._server = xmlrpclib.ServerProxy(url.format(**self.server_url),
                                             transport=transport)
-        self.server.__transport.user_agent = "Vitra 1.2 (Trac client for Vim)"
+        self._server.__transport.user_agent = self.USER_AGENT
 
     def clear(self):
         self.wiki.initialise()
