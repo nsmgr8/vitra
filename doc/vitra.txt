@@ -74,6 +74,20 @@ Authentication. To use digest authentication provide the auth realm to the
         \ 'auth_type': 'digest'
         \ }
 <
+Kerberos authentication is also available if the python module
+'urllib2_kerberos' is installed. To enable kerberos authentication, make sure
+than urllib2_kerberos is available from vim:
+>
+    :python import urllib2_kerberos
+<
+should not raise an ImportError. Then, you need to set the auth_type as the
+following:
+>
+    let g:tracServerList['mykerberostrac'] = {
+        \ 'server': 'localhost:8080/project',
+        \ 'auth_type': 'kerberos'
+        \ }
+<
 
 ==============================================================================
 3. Usage                                                           *VitraUsage*
