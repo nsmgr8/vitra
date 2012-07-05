@@ -973,7 +973,7 @@ class Trac(object):
 
         if auth_type == self.BASIC_AUTH:
             url = '{scheme}://{auth}@{server}{rpc_path}'
-            transport = xmlrpclib.Transport()
+            transport = None
         elif auth_type == self.DIGEST_AUTH:
             url = '{scheme}://{server}{rpc_path}'
             transport = HTTPDigestTransport(self.server_url['scheme'], *auth)
