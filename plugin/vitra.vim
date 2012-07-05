@@ -44,7 +44,7 @@ call s:vitraDefault('g:tracTicketFormat', 1)
 
 call s:vitraDefault('g:tracTimelineMax', 50)
 
-com! -nargs=? -complete=customlist,ComTracServers TracServer  python trac.set_server(<q-args>)
+com! -nargs=? -complete=customlist,ComTracServers TracServer  python trac.server=<q-args>
 
 com! -nargs=? -complete=customlist,ComWiki TWOpen python trac.wiki_view(<q-args>)
 com! -nargs=0 TWClose python trac.uiwiki.destroy()

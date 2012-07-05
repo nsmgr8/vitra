@@ -442,7 +442,7 @@ class ServerWindow(NonEditableWindow):
         vim.command('syn match Title /^!\w*:/')
         vim.command('syn match Special /^\*!\w*:/')
         map_commands([
-            ('<cr>', '0:python trac.set_server("<c-r><c-w>")<cr>'
+            ('<cr>', '0:python trac.server="<c-r><c-w>"<cr>'
                      ':python trac.server_view()<cr>')])
 
 
@@ -917,11 +917,12 @@ def timeline(server, on=None, author=None):
         return
 
     parse_kwargs = {}
-    try:
-        kerberos_handler = urllib2_kerberos.HTTPKerberosAuthHandler()
-        parse_kwargs['handlers'] = [kerberos_handler]
-    except NameError:
-        pass
+    if server['auth_type'] == Trac.KERBEROS_AUTH:
+        try:
+            kerberos_handler = urllib2_kerberos.HTTPKerberosAuthHandler()
+            parse_kwargs['handlers'] = [kerberos_handler]
+        except NameError:
+            pass
 
     query = 'max={0}&format=rss'.format(vim.eval('tracTimelineMax'))
     if on in ('wiki', 'ticket', 'changeset'):
@@ -957,6 +958,11 @@ def timeline(server, on=None, author=None):
 
 
 class Trac(object):
+    BASIC_AUTH = 'basic'
+    DIGEST_AUTH = 'digest'
+    KERBEROS_AUTH = 'kerberos'
+    USER_AGENT = "Vitra 1.2 (Trac client for Vim)"
+
     def __init__(self):
         self.wiki = Wiki()
         self.ticket = Ticket()
@@ -968,7 +974,7 @@ class Trac(object):
         self.timeline_window = TimelineWindow(prefix='Timeline')
 
         self.default_comment = vim.eval('tracDefaultComment')
-        self.set_server(vim.eval('tracDefaultServer'))
+        self.server = vim.eval('tracDefaultServer')
         self.history = {'wiki': [], 'ticket': []}
 
     @property
@@ -979,7 +985,13 @@ class Trac(object):
     def ticket_content(self):
         return self.uiticket.windows['edit'].content
 
-    def set_server(self, server):
+    @property
+    def server(self):
+        return self._server
+
+    @server.setter
+    def server(self, server):
+        self.clear()
         server_list = vim.eval('tracServerList')
         if not server:
             server = server_list.keys()[0]
@@ -990,27 +1002,35 @@ class Trac(object):
             'server': url['server'],
             'rpc_path': url.get('rpc_path', '/login/rpc'),
             'auth': url.get('auth', ''),
+            'auth_type': url.get('auth_type', self.BASIC_AUTH),
         }
-        auth = url.get('auth', '').split(':')
+        auth = self.server_url['auth'].split(':')
+        auth_type = self.server_url['auth_type']
 
-        if len(auth) == 2:
+        if auth_type == self.BASIC_AUTH:
             url = '{scheme}://{auth}@{server}{rpc_path}'
-        else:
+            transport = None
+        elif auth_type == self.DIGEST_AUTH:
             url = '{scheme}://{server}{rpc_path}'
-        url = url.format(**self.server_url)
-        if len(auth) == 3:
             transport = HTTPDigestTransport(self.server_url['scheme'], *auth)
-            self.server = xmlrpclib.ServerProxy(url, transport=transport)
-        else:
-            xmlprc_kwargs = {}
+        elif auth_type == self.KERBEROS_AUTH:
+            url = '{scheme}://{server}{rpc_path}'
             try:
                 transport = HTTPKerberosTransport(self.server_url['scheme'])
-                xmlprc_kwargs['transport'] = transport
             except NameError:
-                pass
-            self.server = xmlrpclib.ServerProxy(url, **xmlprc_kwargs)
-        self.server.__transport.user_agent = "Vitra 1.0 (Trac client for Vim)"
+                print_error('Kerberos Authentication method needs '
+                        'the module urllib2_kerberos to be installed. '
+                        'See http://pypi.python.org/pypi/urllib2_kerberos/')
+                return
+        else:
+            print_error('Authentication method {0} '
+                        'is not supported yet'.format(auth_type))
+            return
+        self._server = xmlrpclib.ServerProxy(url.format(**self.server_url),
+                                            transport=transport)
+        self._server.__transport.user_agent = self.USER_AGENT
 
+    def clear(self):
         self.wiki.initialise()
         self.ticket.initialise()
         self.uiwiki.destroy()
