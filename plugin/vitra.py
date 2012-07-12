@@ -56,7 +56,7 @@ def map_commands(nmaps):
 def print_error(e):
     err = str(e)
     if '"' in err:
-        print err
+        print(err)
     else:
         vim.command(u'echoerr "Error: {0}"'.format(err))
 
@@ -1073,7 +1073,7 @@ class Trac(object):
             tid = int(tid) if tid else self.ticket.current.get('id')
             tid = self.traverse_history('ticket', tid, direction)
         except (ValueError, TypeError):
-            print 'Please provide a valid ticket id'
+            print('Please provide a valid ticket id')
             return
 
         self.ticket.get_fields()
@@ -1095,7 +1095,7 @@ class Trac(object):
                 try:
                     self.uiticket.windows['ticket'].load(contents['ticket'])
                 except Exception as e:
-                    print 'Could not format the content'
+                    print('Could not format the content')
                     print_error(e)
         self.set_history('ticket', tid)
 
@@ -1156,11 +1156,11 @@ class Trac(object):
     def create_ticket(self, type_=False, summary='new ticket'):
         description = self.ticket_content
         if not description:
-            print 'Description is empty. Ticket needs more info'
+            print('Description is empty. Ticket needs more info')
             return
 
         if not confirm(u'Create ticket at {0}?'.format(self.server_name)):
-            print 'Ticket creation cancelled.'
+            print('Ticket creation cancelled.')
             return
 
         attribs = {'type': type_} if type_ else {}
@@ -1177,11 +1177,11 @@ class Trac(object):
             comment = text
         attribs = {option: value} if value else {}
         if not any((comment, attribs)):
-            print 'nothing to change'
+            print('nothing to change')
             return
         tid = self.ticket.current['id']
         if not confirm('Update ticket #{0}?'.format(tid)):
-            print 'Update cancelled.'
+            print('Update cancelled.')
             return False
         if self.ticket.update(comment, attribs, False):
             self.ticket_view()
@@ -1210,33 +1210,35 @@ class Trac(object):
     def add_attachment(self, file):
         bname = vim.eval('expand("%", ":.")')
         if bname.startswith(u'Wiki: '):
-            print 'Adding attachment to wiki', self.wiki.current.get('name')
+            print(u'Adding attachment to wiki {0}'.format(
+                    self.wiki.current.get('name')))
             if self.wiki.add_attachment(file):
                 self.wiki_view()
-                print 'Done.'
+                print('Done.')
         elif bname.startswith(u'Ticket: '):
-            print 'Adding attachment to ticket', self.ticket.current.get('id')
+            print(u'Adding attachment to ticket {0}'.format(
+                    self.ticket.current.get('id')))
             comment = self.ticket_content
             if self.ticket.add_attachment(file, comment):
                 self.ticket_view()
-                print 'Done.'
+                print('Done.')
         else:
-            print 'You need an active ticket or wiki open!'
+            print('You need an active ticket or wiki open!')
 
     def get_attachment(self, file):
         bname = vim.eval('expand("%", ":.")')
         if bname.startswith(u'Wiki: '):
-            print 'Retrieving attachment from wiki',
-            print self.wiki.current.get('name')
+            print('Retrieving attachment from wiki {0}'.format(
+                    self.wiki.current.get('name')))
             if self.wiki.get_attachment(file):
-                print 'Done.'
+                print('Done.')
         elif bname.startswith(u'Ticket: '):
-            print 'Retrieving attachment from ticket',
-            print self.ticket.current.get('id')
+            print(u'Retrieving attachment from ticket {0}'.format(
+                    self.ticket.current.get('id')))
             if self.ticket.get_attachment(file):
-                print 'Done.'
+                print('Done.')
         else:
-            print 'You need an active ticket or wiki open!'
+            print('You need an active ticket or wiki open!')
 
     def load_current(self, text_for):
         text = self.ticket.current.get(text_for)
@@ -1249,7 +1251,7 @@ class Trac(object):
         elif bname.startswith(u'Ticket: '):
             wikitext = self.ticket_content
         else:
-            print 'You need an active ticket or wiki open!'
+            print('You need an active ticket or wiki open!')
             return
 
         try:
@@ -1266,7 +1268,7 @@ class Trac(object):
         elif bname.startswith(u'Ticket: '):
             self.ticket_view(direction=direction)
         else:
-            print 'You need an active ticket or wiki open!'
+            print('You need an active ticket or wiki open!')
             return
 
 
