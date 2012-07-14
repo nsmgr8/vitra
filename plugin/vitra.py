@@ -61,6 +61,32 @@ def print_error(e):
         vim.command(u'echoerr "Error: {0}"'.format(err))
 
 
+def encode(value):
+    encoding = vim.eval('&encoding')
+
+    if isinstance(value, unicode):
+        value = value.encode(encoding)
+    elif isinstance(value, (list, tuple)):
+        value = [encode(v) for v in value]
+    elif isinstance(value, dict):
+        value = dict([(encode(k), encode(v)) for k, v in value.items()])
+
+    return value
+
+
+def decode(value):
+    encoding = vim.eval('&encoding')
+
+    if isinstance(value, unicode):
+        value = value.decode(encoding)
+    elif isinstance(value, (list, tuple)):
+        value = [decode(v) for v in value]
+    elif isinstance(value, dict):
+        value = dict([(decode(k), decode(v)) for k, v in value.items()])
+
+    return value
+
+
 class HTTPDigestTransport(xmlrpclib.Transport):
     def __init__(self, scheme, username, password, realm):
         xmlrpclib.Transport.__init__(self)
@@ -159,12 +185,12 @@ class Window(object):
 
     @property
     def content(self):
-        return u'\n'.join([l.decode('utf-8', 'ignore') for l in self.buffer])
+        return '\n'.join(decode(self.buffer))
 
     @content.setter
     def content(self, text):
         self.clear()
-        text = text.encode('utf-8', 'ignore')
+        text = encode(text)
         self.buffer[:] = text.splitlines()
         self.on_write()
 
