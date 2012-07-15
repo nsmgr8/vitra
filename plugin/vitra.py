@@ -16,53 +16,35 @@ trac = None
 class Vim(object):
     _encoding = vim.eval("&encoding")
 
-    error   = vim.error
-    buffers = vim.buffers
-    windows = vim.windows
-    current = vim.current
-
-
     def decode(self, value):
         decode = self.decode
-        def decode_str(ustr):
-            return ustr.decode(self._encoding)
 
         if isinstance(value, str):
-            value = decode_str(value)
-        elif isinstance(value, list):
+            value = value.encode(self._encoding)
+        elif isinstance(value, (list, tuple)):
             value = [decode(v) for v in value]
         elif isinstance(value, dict):
-            value = dict([(decode(k), decode(v)) for k,v in value.iteritems()])
+            value = dict([(decode(k), decode(v)) for k, v in value.items()])
 
         return value
 
     def encode(self, value):
         encode = self.encode
-        def encode_unicode(ustr):
-            return value.encode( self._encoding )
 
         if isinstance(value, unicode):
-            value = encode_unicode(value)
-        elif isinstance(value, list):
+            value = value.encode(self._encoding)
+        elif isinstance(value, (list, tuple)):
             value = [encode(v) for v in value]
         elif isinstance(value, dict):
-            value = dict([(encode(k), encode(v)) for k,v in value.iteritems()])
+            value = dict([(encode(k), encode(v)) for k, v in value.items()])
 
         return value
 
-
-
     def eval(self, expr):
-        if isinstance(expr, unicode):
-            expr = expr.encode( self._encoding )
-        result = vim.eval(expr)
-        return self.decode(result)
-
+        return self.decode(vim.eval(self.encode(expr)))
 
     def command(self, cmd):
-        if isinstance(cmd, unicode):
-            cmd = self.encode(cmd)
-        vim.command(cmd)
+        vim.command(self.encode(cmd))
 
 u_vim = Vim()
 
@@ -104,7 +86,7 @@ def save_html(html):
 
 def map_commands(nmaps):
     for m in nmaps:
-        u_vim.command('nnoremap <buffer> {0} {1}'.format(*m))
+        u_vim.command(u'nnoremap <buffer> {0} {1}'.format(*m))
 
 
 def print_error(e):
@@ -174,7 +156,7 @@ class Window(object):
 
     @property
     def buffer_name(self):
-        return vim.eval(u'escape("{0}: {1}", " /#")'.format(self.prefix,
+        return u_vim.eval(u'escape("{0}: {1}", " /#")'.format(self.prefix,
                                                             self.name))
 
     @property
@@ -206,7 +188,7 @@ class Window(object):
         u_vim.command(u'silent {0} {1}'.format(method, self.buffer_name))
         u_vim.command('setlocal buftype=nofile')
         u_vim.command('setlocal noswapfile')
-        self.buffer = u_vim.current.buffer
+        self.buffer = vim.current.buffer
         self.on_create()
         return True
 
@@ -215,12 +197,12 @@ class Window(object):
 
     @property
     def content(self):
-        return u'\n'.join([l.decode('utf-8', 'ignore') for l in self.buffer])
+        return u'\n'.join(u_vim.decode(self.buffer))
 
     @content.setter
     def content(self, text):
         self.clear()
-        text = text.encode('utf-8', 'ignore')
+        text = u_vim.encode(text)
         self.buffer[:] = text.splitlines()
         self.on_write()
 
@@ -375,8 +357,8 @@ class PreviewWindow(NonEditableWindow):
 class WikiListWindow(NonEditableWindow):
     def on_create(self):
         map_commands([
-            ('<cr>', ':python trac.wiki_view(u_vim.current.line)<cr>'),
-            ('<2-LeftMouse>', ':python trac.wiki_view(u_vim.current.line)<cr>'),
+            ('<cr>', ':python trac.wiki_view(vim.current.line)<cr>'),
+            ('<2-LeftMouse>', ':python trac.wiki_view(vim.current.line)<cr>'),
         ])
         u_vim.command('vertical resize 30')
 
@@ -503,7 +485,7 @@ class ServerWindow(NonEditableWindow):
 class AttachmentWindow(NonEditableWindow):
     def on_create(self):
         map_commands([
-            ('<cr>', ':python trac.get_attachment(u_vim.current.line)<cr>')])
+            ('<cr>', ':python trac.get_attachment(vim.current.line)<cr>')])
 
 
 class ChangesetWindow(NonEditableWindow):
@@ -566,7 +548,7 @@ class Wiki(object):
             info = trac.server.wiki.getPageInfo(self.current.get('name'))
             if (get_time(info['lastModified']) >
                     get_time(self.current.get('lastModified'))):
-                u_vim.command('echoerr "This page has been modified in another '
+                vim.command('echoerr "This page has been modified in another '
                             'session. Not commiting the changes."')
                 return False
         except:
@@ -1254,7 +1236,7 @@ class Trac(object):
             self.wiki_view()
 
     def open_line(self):
-        line = u_vim.current.line
+        line = vim.current.line
         if u'Ticket:>>' in line:
             u_vim.command('tabnew')
             self.ticket_view(line.replace(u'Ticket:>> ', '').strip())
@@ -1267,7 +1249,7 @@ class Trac(object):
             webbrowser.open(line.replace(u'Link: ', ''))
 
     def add_attachment(self, file):
-        bname = u_vim.eval('expand("%", ":.")')
+        bname = vim.eval('expand("%", ":.")')
         if bname.startswith(u'Wiki: '):
             print(u'Adding attachment to wiki {0}'.format(
                     self.wiki.current.get('name')))
@@ -1285,7 +1267,7 @@ class Trac(object):
             print('You need an active ticket or wiki open!')
 
     def get_attachment(self, file):
-        bname = u_vim.eval('expand("%", ":.")')
+        bname = vim.eval('expand("%", ":.")')
         if bname.startswith(u'Wiki: '):
             print('Retrieving attachment from wiki {0}'.format(
                     self.wiki.current.get('name')))
@@ -1304,7 +1286,7 @@ class Trac(object):
         self.uiticket.update({'edit': text}, {})
 
     def preview(self):
-        bname = u_vim.eval('expand("%", ":.")')
+        bname = vim.eval('expand("%", ":.")')
         if bname.startswith(u'Wiki: '):
             wikitext = self.wiki_content
         elif bname.startswith(u'Ticket: '):
@@ -1321,7 +1303,7 @@ class Trac(object):
 
     def back(self, forward=False):
         direction = 1 if forward else -1
-        bname = u_vim.eval('expand("%", ":.")')
+        bname = vim.eval('expand("%", ":.")')
         if bname.startswith(u'Wiki: '):
             self.wiki_view(direction=direction)
         elif bname.startswith(u'Ticket: '):
