@@ -13,8 +13,62 @@ import xmlrpclib
 trac = None
 
 
+class Vim(object):
+    _encoding = vim.eval("&encoding")
+
+    error   = vim.error
+    buffers = vim.buffers
+    windows = vim.windows
+    current = vim.current
+
+
+    def decode(self, value):
+        decode = self.decode
+        def decode_str(ustr):
+            return ustr.decode(self._encoding)
+
+        if isinstance(value, str):
+            value = decode_str(value)
+        elif isinstance(value, list):
+            value = [decode(v) for v in value]
+        elif isinstance(value, dict):
+            value = dict([(decode(k), decode(v)) for k,v in value.iteritems()])
+
+        return value
+
+    def encode(self, value):
+        encode = self.encode
+        def encode_unicode(ustr):
+            return value.encode( self._encoding )
+
+        if isinstance(value, unicode):
+            value = encode_unicode(value)
+        elif isinstance(value, list):
+            value = [encode(v) for v in value]
+        elif isinstance(value, dict):
+            value = dict([(encode(k), encode(v)) for k,v in value.iteritems()])
+
+        return value
+
+
+
+    def eval(self, expr):
+        if isinstance(expr, unicode):
+            expr = expr.encode( self._encoding )
+        result = vim.eval(expr)
+        return self.decode(result)
+
+
+    def command(self, cmd):
+        if isinstance(cmd, unicode):
+            cmd = self.encode(cmd)
+        vim.command(cmd)
+
+u_vim = Vim()
+
+
 def confirm(text):
-    return int(vim.eval(u'confirm("{0}", "&Yes\n&No", 2)'.format(text))) != 2
+    return int(u_vim.eval(u'confirm("{0}", "&Yes\n&No", 2)'.format(text))) != 2
 
 
 def truncate_words(text, num_words=10):
@@ -35,14 +89,14 @@ def get_time(value, format=False):
 def save_buffer(buffer, file):
     file_name = os.path.basename(file)
     if os.path.exists(file_name):
-        vim.command(u'echoerr "File \'{0}\' exists!"'.format(file_name))
+        u_vim.command(u'echoerr "File \'{0}\' exists!"'.format(file_name))
     else:
         with open(file_name, 'wb') as fp:
             fp.write(buffer)
 
 
 def save_html(html):
-    file_name = vim.eval('tracTempHtml')
+    file_name = u_vim.eval('tracTempHtml')
     with codecs.open(file_name, 'w', 'utf-8') as fp:
         fp.write(html)
     return file_name
@@ -50,7 +104,7 @@ def save_html(html):
 
 def map_commands(nmaps):
     for m in nmaps:
-        vim.command('nnoremap <buffer> {0} {1}'.format(*m))
+        u_vim.command('nnoremap <buffer> {0} {1}'.format(*m))
 
 
 def print_error(e):
@@ -58,7 +112,7 @@ def print_error(e):
     if '"' in err:
         print(err)
     else:
-        vim.command(u'echoerr "Error: {0}"'.format(err))
+        u_vim.command(u'echoerr "Error: {0}"'.format(err))
 
 
 class HTTPDigestTransport(xmlrpclib.Transport):
@@ -125,15 +179,16 @@ class Window(object):
 
     @property
     def winnr(self):
-        return int(vim.eval(u'bufwinnr("{0}")'.format(self.buffer_name)))
+
+        return int(u_vim.eval(u'bufwinnr("{0}")'.format(self.buffer_name)))
 
     @property
     def height(self):
-        return int(vim.eval('winheight("{0}")'.format(self.winnr)))
+        return int(u_vim.eval('winheight("{0}")'.format(self.winnr)))
 
     @property
     def width(self):
-        return int(vim.eval('winwidth("{0}")'.format(self.winnr)))
+        return int(u_vim.eval('winwidth("{0}")'.format(self.winnr)))
 
     @property
     def size(self):
@@ -142,15 +197,16 @@ class Window(object):
     def set_name(self, name):
         self.focus()
         self.name = name
-        vim.command(u'silent f {0}'.format(self.buffer_name))
+        u_vim.command(u'silent f {0}'.format(self.buffer_name))
 
     def create(self, method='new'):
         if self.winnr > 0:
             return False
-        vim.command(u'silent {0} {1}'.format(method, self.buffer_name))
-        vim.command('setlocal buftype=nofile')
-        vim.command('setlocal noswapfile')
-        self.buffer = vim.current.buffer
+
+        u_vim.command(u'silent {0} {1}'.format(method, self.buffer_name))
+        u_vim.command('setlocal buftype=nofile')
+        u_vim.command('setlocal noswapfile')
+        self.buffer = u_vim.current.buffer
         self.on_create()
         return True
 
@@ -176,18 +232,18 @@ class Window(object):
         pass
 
     def on_write(self):
-        vim.command('normal! gg')
+        u_vim.command('normal! gg')
 
     def command(self, cmd):
         self.prepare()
-        vim.command(cmd)
+        u_vim.command(cmd)
 
     def prepare(self):
         self.create()
         self.focus()
 
     def focus(self):
-        vim.command('{0}wincmd w'.format(self.winnr))
+        u_vim.command('{0}wincmd w'.format(self.winnr))
 
     def resize(self, width=None, height=None):
         if width is not None:
@@ -198,7 +254,7 @@ class Window(object):
 
 class NonEditableWindow(Window):
     def on_write(self):
-        vim.command('setlocal nomodifiable')
+        u_vim.command('setlocal nomodifiable')
         super(NonEditableWindow, self).on_write()
 
 
@@ -233,15 +289,15 @@ class WikiUI(UI):
         }
 
     def create(self):
-        if vim.eval('tracWikiStyle') == 'full':
+        if u_vim.eval('tracWikiStyle') == 'full':
             if self.windows['wiki'].create():
-                vim.command('only')
+                u_vim.command('only')
         else:
             self.windows['wiki'].create('vertical belowright new')
-        if vim.eval('tracWikiToC') == '1':
+        if u_vim.eval('tracWikiToC') == '1':
             self.windows['list'].create('vertical leftabove new')
         self.focus('wiki')
-        if vim.eval('tracWikiPreview') == '1':
+        if u_vim.eval('tracWikiPreview') == '1':
             w, h = self.windows['wiki'].size
             w = w / 2
             if w > h:
@@ -264,9 +320,9 @@ class TicketUI(UI):
         }
 
     def create(self):
-        if vim.eval('tracTicketStyle') == 'full':
+        if u_vim.eval('tracTicketStyle') == 'full':
             if self.windows['ticket'].create('belowright new'):
-                vim.command('only')
+                u_vim.command('only')
             w = self.windows['ticket'].width / 2
             h = self.windows['ticket'].height / 2
             if self.windows['list'].create('leftabove new'):
@@ -296,13 +352,13 @@ class WikiWindow(Window):
                         ':nohl<cr>'),
             ('<c-l>', ':python trac.wiki_view()<cr><c-l>'),
         ])
-        vim.command('setlocal syntax=tracwiki')
+        u_vim.command('setlocal syntax=tracwiki')
 
 
 class PreviewWindow(NonEditableWindow):
     def on_create(self):
-        vim.command('syn match Keyword /\[\d*\]\w*/ contains=Ignore')
-        vim.command('syn match Ignore /\[\d*\]/ contained')
+        u_vim.command('syn match Keyword /\[\d*\]\w*/ contains=Ignore')
+        u_vim.command('syn match Ignore /\[\d*\]/ contained')
         map_commands([
             ('<tab>', '/\\d*\\]\\w*<cr>:nohl<cr>'),
             ('<cr>', 'F[l/^ *<c-r><c-w>. http<cr>fh"py$:nohl<cr>'
@@ -319,20 +375,20 @@ class PreviewWindow(NonEditableWindow):
 class WikiListWindow(NonEditableWindow):
     def on_create(self):
         map_commands([
-            ('<cr>', ':python trac.wiki_view(vim.current.line)<cr>'),
-            ('<2-LeftMouse>', ':python trac.wiki_view(vim.current.line)<cr>'),
+            ('<cr>', ':python trac.wiki_view(u_vim.current.line)<cr>'),
+            ('<2-LeftMouse>', ':python trac.wiki_view(u_vim.current.line)<cr>'),
         ])
-        vim.command('vertical resize 30')
+        u_vim.command('vertical resize 30')
 
     def on_write(self):
-        if vim.eval('tracHideTracWiki') == '1':
+        if u_vim.eval('tracHideTracWiki') == '1':
             for name in ('Trac', 'Wiki', 'InterMapTxt$', 'InterWiki$',
                          'InterTrac$', 'SandBox$', 'TitleIndex$',
                          'RecentChanges$', 'CamelCase$', 'PageTemplates$'):
-                vim.command('silent g/^{0}/d _'.format(name))
+                u_vim.command('silent g/^{0}/d _'.format(name))
 
-        vim.command('sort')
-        vim.command('silent norm! ggOWikiStart')
+        u_vim.command('sort')
+        u_vim.command('silent norm! ggOWikiStart')
         super(WikiListWindow, self).on_write()
 
 
@@ -346,18 +402,18 @@ class TicketListWindow(NonEditableWindow):
 
     def on_write(self):
         try:
-            vim.command('AlignCtrl rl+')
-            vim.command('%Align ||')
+            u_vim.command('AlignCtrl rl+')
+            u_vim.command('%Align ||')
         except:
-            vim.command('echo "install Align for the best view of summary"')
-        vim.command('silent %s/^\s*|| / - /g')
+            u_vim.command('echo "install Align for the best view of summary"')
+        u_vim.command('silent %s/^\s*|| / - /g')
         super(TicketListWindow, self).on_write()
-        vim.command('silent norm! 2gg')
-        vim.command('syn match Ignore /||/')
-        vim.command('syn match Number /\<\d*\>/')
-        vim.command('syn match Error /^\s*#.*$/')
-        vim.command('syn match Keyword /^\s-\s.*: .*$/ contains=Title')
-        vim.command('syn match Title /^\s-\s.*:/ contained')
+        u_vim.command('silent norm! 2gg')
+        u_vim.command('syn match Ignore /||/')
+        u_vim.command('syn match Number /\<\d*\>/')
+        u_vim.command('syn match Error /^\s*#.*$/')
+        u_vim.command('syn match Keyword /^\s-\s.*: .*$/ contains=Title')
+        u_vim.command('syn match Title /^\s-\s.*:/ contained')
         hilighters = ['Constant', 'Special', 'Identifier', 'Statement',
                       'PreProc', 'Type', 'Underlined']
         num_hi = len(hilighters)
@@ -369,7 +425,7 @@ class TicketListWindow(NonEditableWindow):
                 except ValueError:
                     hi = hilighters[i % num_hi]
                     if u'/' not in a:
-                        vim.command(u'syn match {0} /\<{1}\>/'.format(hi, a))
+                        u_vim.command(u'syn match {0} /\<{1}\>/'.format(hi, a))
 
 
 class TicketWindow(NonEditableWindow):
@@ -381,15 +437,15 @@ class TicketWindow(NonEditableWindow):
         ])
 
     def on_create(self):
-        vim.command('setlocal syntax=tracwiki')
-        vim.command('syn match Keyword /^ \+\*[^:]*:.*$/ contains=Title')
-        vim.command('syn match Title /^ \+\*[^:]*:/ contained')
-        vim.command('syn match Underlined /\[\d*\]\w*/ contains=Ignore')
-        vim.command('syn match Ignore /\[\d*\]/ contained')
-        vim.command('syn match Special '
+        u_vim.command('setlocal syntax=tracwiki')
+        u_vim.command('syn match Keyword /^ \+\*[^:]*:.*$/ contains=Title')
+        u_vim.command('syn match Title /^ \+\*[^:]*:/ contained')
+        u_vim.command('syn match Underlined /\[\d*\]\w*/ contains=Ignore')
+        u_vim.command('syn match Ignore /\[\d*\]/ contained')
+        u_vim.command('syn match Special '
                     '/\w\{3\} [0-9/]\{10\} [0-9:]\{5\} (.*)/ '
                     'contains=Identifier')
-        vim.command('syn match Identifier /(.*)/ contained')
+        u_vim.command('syn match Identifier /(.*)/ contained')
 
     def load(self, wiki_text):
         try:
@@ -410,7 +466,7 @@ class TicketWindow(NonEditableWindow):
 
 class TicketCommentWindow(Window):
     def on_create(self):
-        vim.command('setlocal syntax=tracwiki')
+        u_vim.command('setlocal syntax=tracwiki')
 
 
 class SearchWindow(NonEditableWindow):
@@ -420,25 +476,25 @@ class SearchWindow(NonEditableWindow):
             ('<c-]>', ':python trac.wiki_view("<c-r><c-w>")<cr>'),
             ('<cr>', ':python trac.open_line()<cr>'),
         ])
-        vim.command('setlocal syntax=tracwiki')
-        vim.command('syn match Keyword /\w*:>> .*$/ contains=Title')
-        vim.command('syn match Title /\w*:>>/ contained')
+        u_vim.command('setlocal syntax=tracwiki')
+        u_vim.command('syn match Keyword /\w*:>> .*$/ contains=Title')
+        u_vim.command('syn match Title /\w*:>>/ contained')
 
 
 class TimelineWindow(SearchWindow):
     def on_create(self):
         super(TimelineWindow, self).on_create()
-        vim.command('syn match Identifier /^[0-9\-]\{10\}\s.*$/ '
+        u_vim.command('syn match Identifier /^[0-9\-]\{10\}\s.*$/ '
                     'contains=Statement')
-        vim.command('syn match Statement /[0-9:]\{8\}$/ contained')
+        u_vim.command('syn match Statement /[0-9:]\{8\}$/ contained')
 
 
 class ServerWindow(NonEditableWindow):
     def on_create(self):
-        vim.command('syn match Keyword /^\w*:/')
-        vim.command('syn match Identifier /^\*\w*:/')
-        vim.command('syn match Title /^!\w*:/')
-        vim.command('syn match Special /^\*!\w*:/')
+        u_vim.command('syn match Keyword /^\w*:/')
+        u_vim.command('syn match Identifier /^\*\w*:/')
+        u_vim.command('syn match Title /^!\w*:/')
+        u_vim.command('syn match Special /^\*!\w*:/')
         map_commands([
             ('<cr>', '0:python trac.server="<c-r><c-w>"<cr>'
                      ':python trac.server_view()<cr>')])
@@ -447,7 +503,7 @@ class ServerWindow(NonEditableWindow):
 class AttachmentWindow(NonEditableWindow):
     def on_create(self):
         map_commands([
-            ('<cr>', ':python trac.get_attachment(vim.current.line)<cr>')])
+            ('<cr>', ':python trac.get_attachment(u_vim.current.line)<cr>')])
 
 
 class ChangesetWindow(NonEditableWindow):
@@ -510,7 +566,7 @@ class Wiki(object):
             info = trac.server.wiki.getPageInfo(self.current.get('name'))
             if (get_time(info['lastModified']) >
                     get_time(self.current.get('lastModified'))):
-                vim.command('echoerr "This page has been modified in another '
+                u_vim.command('echoerr "This page has been modified in another '
                             'session. Not commiting the changes."')
                 return False
         except:
@@ -524,8 +580,8 @@ class Wiki(object):
                 trac.wiki_content, {'comment': comment})
             return True
         except xmlrpclib.Fault as e:
-            vim.command('echoerr "Not committing the changes."')
-            vim.command(u'echoerr "Error: {0}"'.format(e.faultString))
+            u_vim.command('echoerr "Not committing the changes."')
+            u_vim.command(u'echoerr "Error: {0}"'.format(e.faultString))
         except Exception as e:
             print_error(e)
         return False
@@ -553,7 +609,9 @@ class Wiki(object):
     def get_options(self):
         if not self.pages:
             self.get_all()
-        vim.command('let g:tracOptions={0}'.format(self.pages))
+
+        pages = u_vim.encode(self.pages)
+        u_vim.command('let g:tracOptions={0}'.format(pages))
 
 
 class Ticket(object):
@@ -570,8 +628,8 @@ class Ticket(object):
         self.actions = []
         self.tickets = []
         self.sorter = {
-            'order': vim.eval('tracTicketOrder'),
-            'group': vim.eval('tracTicketGroup'),
+            'order': u_vim.eval('tracTicketOrder'),
+            'group': u_vim.eval('tracTicketGroup'),
         }
         self.filters = {}
         self.page = 1
@@ -598,7 +656,7 @@ class Ticket(object):
         for t in self.options.get('type', []):
             name = t.title()
             name = ''.join(re.findall(r'[a-zA-z0-9]*', name))
-            vim.command(u'delc TTCreate{0}'.format(name))
+            u_vim.command(u'delc TTCreate{0}'.format(name))
         delcommand = u"""
             if exists(':TT{0}{1}') == 2
                 delc TT{0}{1}
@@ -611,7 +669,7 @@ class Ticket(object):
             mname = f['name'].title()
             mname = u''.join(re.findall('[a-zA-Z0-9]*', mname))
             for s in ('Update', 'Filter', 'Ignore'):
-                vim.command(delcommand.format(s, mname))
+                u_vim.command(delcommand.format(s, mname))
 
     def _generate_vim_commands(self):
         for t in self.options['type']:
@@ -619,7 +677,7 @@ class Ticket(object):
             name = u''.join(re.findall('[a-zA-z0-9]*', name))
             name = u'TTCreate{0}'.format(name)
             meth = u'python trac.create_ticket("{0}", <q-args>)'.format(t)
-            vim.command(u'com! -nargs=+ {0} {1}'.format(name, meth))
+            u_vim.command(u'com! -nargs=+ {0} {1}'.format(name, meth))
 
         compfun = u"""
             fun! Com{0}(A, L, P)
@@ -637,7 +695,7 @@ class Ticket(object):
             mname = u''.join(re.findall('[a-zA-Z0-9]*', mname))
             if 'options' in f:
                 comp = u'-complete=customlist,Com{0}'.format(mname)
-                vim.command(compfun.format(mname, fname))
+                u_vim.command(compfun.format(mname, fname))
             else:
                 comp = ''
             for s in ('update', 'filter', 'ignore'):
@@ -647,7 +705,7 @@ class Ticket(object):
                 name = u'TT{0}{1}'.format(s.title(), mname)
                 mc = 'python trac.{0}_ticket("{1}", <q-args>)'.format(s, fname)
                 command = u'com! -nargs=? {0} {1} {2}'.format(comp, name, mc)
-                vim.command(command)
+                u_vim.command(command)
 
     def get_label(self, field):
         for f in self.fields:
@@ -661,7 +719,7 @@ class Ticket(object):
     def query_string(self, f_all=False):
         query = u'order={order}&group={group}&page={page}'
         query = query.format(page=self.page, **self.sorter)
-        query = u'{0}&{1}'.format(query, vim.eval('tracTicketClause'))
+        query = u'{0}&{1}'.format(query, u_vim.eval('tracTicketClause'))
         filters = [u'{0}={1}'.format(k, v) for k, v in
                     self.filters.iteritems()]
         if filters:
@@ -726,7 +784,7 @@ class Ticket(object):
         for k, v in self.filters.iteritems():
             tlist.append(skey.format(k.title(), self.get_label(v)))
 
-        tlist.extend([skey.format('Other', vim.eval('tracTicketClause')),
+        tlist.extend([skey.format('Other', u_vim.eval('tracTicketClause')),
             '', skey.format('Number of tickets', self.number_tickets),
             ' || {0}: {1} of {2}'.format('Page', self.page, self.total_pages)])
         tlist.append('')
@@ -799,8 +857,8 @@ class Ticket(object):
             return trac.server.ticket.update(self.current['id'], comment,
                                              attribs, notify)
         except xmlrpclib.Fault as e:
-            vim.command('echoerr "Not committing the changes."')
-            vim.command(u'echoerr "Error: {0}"'.format(e.faultString))
+            u_vim.command('echoerr "Not committing the changes."')
+            u_vim.command(u'echoerr "Error: {0}"'.format(e.faultString))
         return None
 
     def create(self, description, summary, attributes={}):
@@ -850,7 +908,7 @@ class Ticket(object):
             name, options = action[0], action[1:]
             actions = trac.server.ticket.getActions(self.current.get('id'))
         except IndexError:
-            vim.command('echoerr "No action requested"')
+            u_vim.command('echoerr "No action requested"')
             return
         except Exception as e:
             print_error(e)
@@ -861,7 +919,7 @@ class Ticket(object):
                 action = a
                 break
         else:
-            vim.command('echoerr "action is not valid"')
+            u_vim.command('echoerr "action is not valid"')
             return
         attribs = {'action': name}
         for i, opt in enumerate(options):
@@ -871,7 +929,7 @@ class Ticket(object):
             elif opt == ac[1]:
                 attribs[ac[0]] = opt
             else:
-                vim.command('echoerr "invalid option"')
+                u_vim.command('echoerr "invalid option"')
                 return
         return self.update(comment, attribs)
 
@@ -882,7 +940,8 @@ class Ticket(object):
             'action': self.actions,
             'history': map(str, trac.history['ticket']),
         }.get(type_, [])
-        vim.command('let g:tracOptions={0}'.format(options))
+        options = u_vim.encode(options)
+        u_vim.command('let g:tracOptions={0}'.format(options))
 
 
 def search(search_pattern):
@@ -912,7 +971,7 @@ def timeline(server, on=None, author=None):
         import feedparser
         from time import strftime
     except ImportError:
-        vim.command('echoerr "Please install feedparser.py!"')
+        u_vim.command('echoerr "Please install feedparser.py!"')
         return
 
     parse_kwargs = {}
@@ -923,7 +982,7 @@ def timeline(server, on=None, author=None):
         except NameError:
             pass
 
-    query = 'max={0}&format=rss'.format(vim.eval('tracTimelineMax'))
+    query = 'max={0}&format=rss'.format(u_vim.eval('tracTimelineMax'))
     if on in ('wiki', 'ticket', 'changeset'):
         query = '{0}=on&{1}'.format(on, query)
     elif not author:
@@ -972,8 +1031,8 @@ class Trac(object):
         self.server_window = ServerWindow(prefix='Trac', name='Servers')
         self.timeline_window = TimelineWindow(prefix='Timeline')
 
-        self.default_comment = vim.eval('tracDefaultComment')
-        self.server = vim.eval('tracDefaultServer')
+        self.default_comment = u_vim.eval('tracDefaultComment')
+        self.server = u_vim.eval('tracDefaultServer')
         self.history = {'wiki': [], 'ticket': []}
 
     @property
@@ -991,7 +1050,7 @@ class Trac(object):
     @server.setter
     def server(self, server):
         self.clear()
-        server_list = vim.eval('tracServerList')
+        server_list = u_vim.eval('tracServerList')
         if not server:
             server = server_list.keys()[0]
         url = server_list[server]
@@ -1058,12 +1117,12 @@ class Trac(object):
             'attachment': u'\n'.join(self.wiki.attachments),
         }
         titles = {'wiki': page}
-        if vim.eval('tracWikiToC') == '1':
+        if u_vim.eval('tracWikiToC') == '1':
             contents['list'] = u'\n'.join(self.wiki.get_all())
 
         self.uiwiki.create()
         self.uiwiki.update(contents, titles)
-        if vim.eval('tracWikiPreview') == '1':
+        if u_vim.eval('tracWikiPreview') == '1':
             self.uiwiki.windows['preview'].load(self.wiki.get_html())
         self.uiwiki.focus('wiki')
         self.set_history('wiki', page)
@@ -1083,7 +1142,7 @@ class Trac(object):
             'attachment': '\n'.join(self.ticket.attachments),
         }
         titles = {'ticket': '#{0}'.format(tid) if tid else ''}
-        if vim.eval('tracTicketStyle') == 'full':
+        if u_vim.eval('tracTicketStyle') == 'full':
             contents['list'] = self.ticket.get_all()
             titles['list'] = 'Page {0} of {1}'.format(self.ticket.page,
                                                       self.ticket.total_pages)
@@ -1091,7 +1150,7 @@ class Trac(object):
         self.uiticket.update(contents, titles)
         if tid:
             self.uiticket.focus('ticket')
-            if vim.eval('tracTicketFormat') == '1':
+            if u_vim.eval('tracTicketFormat') == '1':
                 try:
                     self.uiticket.windows['ticket'].load(contents['ticket'])
                 except Exception as e:
@@ -1104,8 +1163,8 @@ class Trac(object):
         self.timeline_window.set_name(self.server_name)
 
     def server_view(self):
-        server_list = vim.eval('tracServerList')
-        default = u'{0}: '.format(vim.eval('tracDefaultServer'))
+        server_list = u_vim.eval('tracServerList')
+        default = u'{0}: '.format(u_vim.eval('tracDefaultServer'))
         current = u'{0}: '.format(self.server_name)
         servers = u'\n'.join([u'{0}: {1}'.format(key, val['server'])
                               for key, val in server_list.iteritems()])
@@ -1151,7 +1210,7 @@ class Trac(object):
             self.ticket_view()
         except:
             self.ticket.page -= direction
-            vim.command('echoerr "cannot go beyond current page"')
+            u_vim.command('echoerr "cannot go beyond current page"')
 
     def create_ticket(self, type_=False, summary='new ticket'):
         description = self.ticket_content
@@ -1195,12 +1254,12 @@ class Trac(object):
             self.wiki_view()
 
     def open_line(self):
-        line = vim.current.line
+        line = u_vim.current.line
         if u'Ticket:>>' in line:
-            vim.command('tabnew')
+            u_vim.command('tabnew')
             self.ticket_view(line.replace(u'Ticket:>> ', '').strip())
         elif u'Wiki:>>' in line:
-            vim.command('tabnew')
+            u_vim.command('tabnew')
             self.wiki_view(line.replace(u'Wiki:>> ', '').strip())
         elif u'Changeset:>>' in line:
             self.changeset_view(line.replace(u'Changeset:>> ', '').strip())
@@ -1208,7 +1267,7 @@ class Trac(object):
             webbrowser.open(line.replace(u'Link: ', ''))
 
     def add_attachment(self, file):
-        bname = vim.eval('expand("%", ":.")')
+        bname = u_vim.eval('expand("%", ":.")')
         if bname.startswith(u'Wiki: '):
             print(u'Adding attachment to wiki {0}'.format(
                     self.wiki.current.get('name')))
@@ -1226,7 +1285,7 @@ class Trac(object):
             print('You need an active ticket or wiki open!')
 
     def get_attachment(self, file):
-        bname = vim.eval('expand("%", ":.")')
+        bname = u_vim.eval('expand("%", ":.")')
         if bname.startswith(u'Wiki: '):
             print('Retrieving attachment from wiki {0}'.format(
                     self.wiki.current.get('name')))
@@ -1245,7 +1304,7 @@ class Trac(object):
         self.uiticket.update({'edit': text}, {})
 
     def preview(self):
-        bname = vim.eval('expand("%", ":.")')
+        bname = u_vim.eval('expand("%", ":.")')
         if bname.startswith(u'Wiki: '):
             wikitext = self.wiki_content
         elif bname.startswith(u'Ticket: '):
@@ -1262,7 +1321,7 @@ class Trac(object):
 
     def back(self, forward=False):
         direction = 1 if forward else -1
-        bname = vim.eval('expand("%", ":.")')
+        bname = u_vim.eval('expand("%", ":.")')
         if bname.startswith(u'Wiki: '):
             self.wiki_view(direction=direction)
         elif bname.startswith(u'Ticket: '):
