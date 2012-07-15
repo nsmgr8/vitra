@@ -1,6 +1,6 @@
-# `Vitra` (Trac client UI for ViM)
+# `Vitra` (Trac UI for ViM)
 
-`Vitra` is a [Trac][Trac] client UI for the wonderful universal editor
+[`Vitra`][vitra] is a [Trac][Trac] client UI for the wonderful universal editor
 [Vim][Vim]. It talks to a trac server via XML-RPC.  It provides a fancy UI for
 both wiki and tickets. A paginated list of tickets window, full ticket detail
 window along with attachment window makes a great UI for ticket manipulation.
@@ -75,6 +75,7 @@ example of django trac server:
         \ 'auth': 'USERNAME:PASSWORD',
         \ 'server': 'code.djangoproject.com',
         \ 'rpc_path': '/login/xmlrpc'
+        \ 'auth_type': 'basic',
         \ }
 
 By default, _scheme_ and *rpc_path* have values _http_ and _/login/rpc_.
@@ -89,6 +90,9 @@ It is also possible to change the trac server in the running vim session. Use
 __TracServer__ command to change the trac server to use. It can offer tab
 completion for available servers that are defined in _g:tracServerList_. Note
 that, this does not set the server to be default for next sessions.
+
+`Vitra` supports __Basic HTTP__, __Digest HTTP__ and __Kerberos__
+authentication.
 
 # UI
 
@@ -134,7 +138,9 @@ window.
 
 To update the summary, description or to add a comment, enter the text in the
 edit window and run __TTSetSummary__, __TTSetDescription__ or __TTAddComment__
-respectively.
+respectively. There are also handy commands to load current summary or
+description in the edit window to update them. They are, obviously,
+__TTEditSummary__ and __TTEditDescription__.
 
 There will also be a number of __TTUpdate*Attr*__ command available for
 updating the respective attributes of the ticket. e.g., __TTUpdateType__ will
@@ -192,6 +198,8 @@ current wiki page content by __TPreview__.
    result where one can open a ticket, wiki or changeset by pressing `ENTER`.
  * __TChangeset__ command can open a diff view of a given changeset in
    a window.
+ * __TServer__ opens a buffer with a list of available servers. By pressing
+   `ENTER` one can switch server.
 
 # Options
 
@@ -222,6 +230,15 @@ The following options are available for `Vitra`:
    * If set to 1, the wiki UI will show the list of available pages.
  * _g:tracHideTracWiki_: 1
    * If set to 1, the list of wiki pages will not show the Trac's own pages.
+ * _g:tracTimelineMax_: 50
+   * Number of maximum number of entries to get in the timeline.
+
+# Links
+
+ * [Homepage][vitra]
+ * [Vim scripts][vimscripts]
+ * [Development][development]
+ * [Issues/Bug Reports][issues]
 
 # Inspiration
 
@@ -254,6 +271,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+[vitra]: http://nsmgr8.github.com/vitra/ "Vitra"
 [Vim]: http://www.vim.org/ "Vim"
 [Trac]: http://trac.edgewall.org/ "Trac"
 [Align]: http://www.vim.org/scripts/script.php?script_id=294 "Align plugin"
@@ -264,3 +282,6 @@ SOFTWARE.
 [djwiki]: http://dl.dropbox.com/u/125015/vitradjangowiki.png "Django wiki"
 [otherwins]: http://dl.dropbox.com/u/125015/vitraothers.png "Other windows"
 [vimtrac]: http://www.vim.org/scripts/script.php?script_id=2147
+[vimscripts]: http://www.vim.org/scripts/script.php?script_id=4092
+[development]: https://github.com/nsmgr8/vitra "github"
+[issues]: https://github.com/nsmgr8/vitra/issues "issues, bug reports"
