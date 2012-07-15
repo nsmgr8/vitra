@@ -46,6 +46,7 @@ class Vim(object):
     def command(self, cmd):
         vim.command(self.encode(cmd))
 
+
 u_vim = Vim()
 
 
@@ -1001,7 +1002,7 @@ class Trac(object):
     BASIC_AUTH = 'basic'
     DIGEST_AUTH = 'digest'
     KERBEROS_AUTH = 'kerberos'
-    USER_AGENT = u'Vitra 1.2 (Trac client for Vim)'
+    USER_AGENT = u'Vitra 1.3 (Trac client for Vim)'
 
     def __init__(self):
         self.wiki = Wiki()
