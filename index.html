@@ -1,0 +1,396 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Vitra by nsmgr8</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/main.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+  </head>
+  <body>
+
+      <header>
+        <h1>Vitra</h1>
+        <p>Vim client for Trac</p>
+      </header>
+
+      <div id="banner">
+        <span id="logo"></span>
+
+        <a href="https://github.com/nsmgr8/vitra" class="button fork"><strong>View On GitHub</strong></a>
+        <div class="downloads">
+          <span>Downloads:</span>
+          <ul>
+            <li><a href="https://github.com/nsmgr8/vitra/zipball/master" class="button">ZIP</a></li>
+            <li><a href="https://github.com/nsmgr8/vitra/tarball/master" class="button">TAR</a></li>
+          </ul>
+        </div>
+      </div><!-- end banner -->
+
+    <div class="wrapper">
+      <nav>
+        <ul></ul>
+      </nav>
+      <section>
+        <h1>
+<code>Vitra</code> - Trac UI for ViM</h1>
+
+<p><a href="http://nsmgr8.github.com/vitra/" title="Vitra"><code>Vitra</code></a> is a <a href="http://trac.edgewall.org/" title="Trac">Trac</a> client UI for the wonderful universal editor
+<a href="http://www.vim.org/" title="Vim">Vim</a>. It talks to a trac server via XML-RPC.  It provides a fancy UI for
+both wiki and tickets. A paginated list of tickets window, full ticket detail
+window along with attachment window makes a great UI for ticket manipulation.
+The wiki UI combines the list of wiki pages, edit window with the content of
+the wiki and a preview window. It also has timeline, search and changeset
+windows.</p>
+
+<h1>Screenshots</h1>
+
+<p>Ticket UI</p>
+
+<p><img src="http://dl.dropbox.com/u/125015/vitradjangotickets.png" alt="django tickets" title="Django tickets"></p>
+
+<p>Wiki UI</p>
+
+<p><img src="http://dl.dropbox.com/u/125015/vitradjangowiki.png" alt="django wiki" title="Django wiki"></p>
+
+<p>Other windows</p>
+
+<p><img src="http://dl.dropbox.com/u/125015/vitraothers.png" alt="localdj windows" title="Other windows"></p>
+
+<h1>Requirements</h1>
+
+<p><code>Vitra</code> requires Vim 7.3+ to be compiled with python 2.6+. <a href="http://www.vim.org/scripts/script.php?script_id=294" title="Align plugin"><code>Align</code></a> and
+<a href="http://www.vim.org/scripts/script.php?script_id=3337" title="Trac wiki syntax"><code>TracWiki</code></a> are two (optional) vim plugins that makes <code>Vitra</code> more
+beautiful. Also the trac server should be 0.12+, as it uses the action command
+for the workflow rather than just setting resolution on a ticket manually.</p>
+
+<h1>Installation</h1>
+
+<p>The preferred way to install <code>Vitra</code> is using <a href="https://github.com/gmarik/vundle" title="Vim plugin manager"><code>Vundle</code></a> or
+<a href="http://github.com/tpope/vim-pathogen" title="Vim runtime manager"><code>Pathogen</code></a>.</p>
+
+<h2>Vundle</h2>
+
+<p>Add the following line to your <strong>.vimrc</strong></p>
+
+<pre><code>Bundle "nsmgr8/vitra"
+</code></pre>
+
+<p>Run <strong>:BundleInstall</strong> in your vim command line.</p>
+
+<h2>Pathogen</h2>
+
+<p>To install in a pathogen managed plugins environment follow the steps as</p>
+
+<pre><code>$ cd ~./vim/bundle
+$ git clone git://github.com/nsmgr8/vitra
+</code></pre>
+
+<p>Then restart your vim.</p>
+
+<h2>Manual</h2>
+
+<p>To install <code>Vitra</code> manually in your local vim runtime path, do the following:</p>
+
+<pre><code>$ git clone git://github.com/nsmgr8/vitra
+$ cp -R vitra/* ~/.vim/
+</code></pre>
+
+<p>Then restart vim and build the help tags via the vim command line</p>
+
+<pre><code>:helptags ~/.vim/doc
+</code></pre>
+
+<h1>Settings</h1>
+
+<p>The minimum setting requirement is to define the trac server. One or more trac
+server(s) can be defined for use. To add a trac server define the global
+dictionary of servers <em>g:tracServerList</em> in your <strong>.vimrc</strong>. Following is an
+example of django trac server:</p>
+
+<pre><code>let g:tracServerList = {}
+let g:tracServerList['djangoproject'] = {
+    \ 'scheme': 'https',
+    \ 'auth': 'USERNAME:PASSWORD',
+    \ 'server': 'code.djangoproject.com',
+    \ 'rpc_path': '/login/xmlrpc'
+    \ 'auth_type': 'basic',
+    \ }
+</code></pre>
+
+<p>By default, <em>scheme</em> and <em>rpc_path</em> have values <em>http</em> and <em>/login/rpc</em>.</p>
+
+<p>If you define more than one trac server, you can also choose a default server
+that will be selected when a vim session starts. To define the default server
+set the <em>g:tracDefaultServer</em> in your .vimrc to the server key of it. e.g.,</p>
+
+<pre><code>let g:tracDefaultServer = 'djangoproject'
+</code></pre>
+
+<p>It is also possible to change the trac server in the running vim session. Use
+<strong>TracServer</strong> command to change the trac server to use. It can offer tab
+completion for available servers that are defined in <em>g:tracServerList</em>. Note
+that, this does not set the server to be default for next sessions.</p>
+
+<p><code>Vitra</code> supports <strong>Basic HTTP</strong>, <strong>Digest HTTP</strong> and <strong>Kerberos</strong>
+authentication.</p>
+
+<h1>UI</h1>
+
+<p>After the settings, one can open the wiki or ticket interface by <strong>TWOpen</strong> or
+<strong>TTOpen</strong> command respectively. Both commands can also optionally take a wiki
+page name or ticket number to open. If the requested wiki page does not exist,
+the wiki edit window will offer the page to be created. In case of non-existent
+ticket number, it will show an error in the ticket detail window.</p>
+
+<h2>Ticket UI</h2>
+
+<p>The ticket UI consists of four windows, viz., Listing, Detail, Edit and
+Attachment windows. The listing window is a paginated list of tickets. One can
+paginate through the list via <strong>TTNextPage</strong> or <strong>TTPreviousPage</strong> commands.
+There are also two handy <strong>TTFirstPage</strong> and <strong>TTLastPage</strong> commands which
+lists the first and last page of the ticket lists. One can open a ticket from
+the listing just by pressing <code>ENTER</code> or double-clicking on a line.</p>
+
+<p>A number of <strong>TTFilter<em>Attr</em></strong>, <strong>TTIgnore<em>Attr</em></strong> commands will be available
+to filter the list of tickets by attributes. <strong>TTOrderBy</strong> and <strong>TTGroupBy</strong>
+are also available for sorting the list on ticket attributes, which also have
+tab completion values for the ticket attribute keys. Filters can be cleared
+individually by <strong>TTClearFilter</strong> or completely by <strong>TTClearAllFilters</strong>.</p>
+
+<p>The detail window shows the content of the ticket along with changelog. This is
+a read only buffer, that is this content is not editable. It lists the current
+values of all ticket attributes, description and the conversation with all the
+history of attribute changes.</p>
+
+<p>The edit window is an empty writable buffer, where one can create/update a
+ticket. To create a new ticket enter the ticket description in this window and
+run the command <strong>TTCreate</strong> following the ticket summary. e.g., enter the
+following in the edit window</p>
+
+<pre><code>Here is the ticket description.
+</code></pre>
+
+<p>And run the following command</p>
+
+<pre><code>:TTCreate Summary of the ticket
+</code></pre>
+
+<p>This will create the ticket on the trac server and load it back in the detail
+window.</p>
+
+<p>To update the summary, description or to add a comment, enter the text in the
+edit window and run <strong>TTSetSummary</strong>, <strong>TTSetDescription</strong> or <strong>TTAddComment</strong>
+respectively. There are also handy commands to load current summary or
+description in the edit window to update them. They are, obviously,
+<strong>TTEditSummary</strong> and <strong>TTEditDescription</strong>.</p>
+
+<p>There will also be a number of <strong>TTUpdate<em>Attr</em></strong> command available for
+updating the respective attributes of the ticket. e.g., <strong>TTUpdateType</strong> will
+update the type of the ticket. It will also offer tab completion to select the
+type.</p>
+
+<p>One can also attach a file to the ticket via <strong>TAddAttachment</strong> command which
+also offers tab completion on the file system to find your file to attach. The
+attachments are listed in the attachment window. Pressing <code>ENTER</code> will download
+the file into current folder.</p>
+
+<p><code>Vitra</code> supports the trac workflow actions. It loads a ticket with the actions
+available. One can apply the action by <strong>TTAction</strong>, which again offers tab
+completion. The action will be verified before applying, so that invalid
+actions cannot be applied.</p>
+
+<p><code>Vitra</code> also keeps the history of opened tickets in the current session.
+Therefore it is possible to move back/forward from the currently opened ticket.
+To navigate the current history one should apply the command <strong>TBack</strong> or
+<strong>TForward</strong> to go back or forward in the history of opened tickets.</p>
+
+<p>To close the ticket UI, run <strong>TTClose</strong> command. One can preview an HTML of the
+ticket edit window content in the default browser by <strong>TPreview</strong>.</p>
+
+<h2>Wiki UI</h2>
+
+<p>Wiki interface also consists of four windows, viz., Listing, Edit, Preview and
+Attachment windows. Listing window lists all available wiki pages. One can open
+a wiki by pressing <code>ENTER</code> or double-clicking a line.</p>
+
+<p>The main wiki window allows the wiki page to be edited. One can edit a wiki
+page here and run <strong>TWSave</strong> to save the changes. To create a new wiki page,
+run <code>TWOpen new_page_name</code>, enter the text into the wiki window and run
+<code>TWSave</code>.</p>
+
+<p>Like the ticket attachment window, wiki page also has a corresponding
+attachment window. Run <strong>TAddAttachment</strong> similarly to add a file and press
+<code>ENTER</code> to retrieve the attachment.</p>
+
+<p>The UI also provides a preview which shows a stripped out html output of the
+current wiki page.</p>
+
+<p><strong>TBack</strong> and <strong>TForward</strong> also traverses the history of opened wiki pages as
+well.</p>
+
+<p><strong>TWClose</strong> can close the wiki UI. Also, <strong>TWInfo</strong> can print useful
+information about the current page. One can locally preview the HTML of the
+current wiki page content by <strong>TPreview</strong>.</p>
+
+<h2>Other windows</h2>
+
+<ul>
+<li>
+<strong>TTimeline</strong> opens the timeline in a window and by pressing <code>ENTER</code> one can
+open a ticket, wiki or changeset.</li>
+<li>
+<strong>TSearch</strong> command can search the trac and provide a window with the search
+result where one can open a ticket, wiki or changeset by pressing <code>ENTER</code>.</li>
+<li>
+<strong>TChangeset</strong> command can open a diff view of a given changeset in
+a window.</li>
+<li>
+<strong>TServer</strong> opens a buffer with a list of available servers. By pressing
+<code>ENTER</code> one can switch server.</li>
+</ul><h1>Options</h1>
+
+<p>The following options are available for <code>Vitra</code>:</p>
+
+<ul>
+<li>
+<em>g:tracDefaultServer</em>:  ''
+
+<ul>
+<li>Set your preferred trac server, if you have more than one defined in
+<em>g:tracServerList</em>.</li>
+</ul>
+</li>
+<li>
+<em>g:tracDefaultComment</em>: 'Updated from Vitra'
+
+<ul>
+<li>Default comment to use when saving changes to trac.</li>
+</ul>
+</li>
+<li>
+<em>g:tracTicketClause</em>: 'status!=closed'
+
+<ul>
+<li>This provides a default filtering options for ticket listing.</li>
+</ul>
+</li>
+<li>
+<em>g:tracTicketGroup</em>: 'milestone'
+
+<ul>
+<li>Set to your preferred attribute for listing tickets in groups.</li>
+</ul>
+</li>
+<li>
+<em>g:tracTicketOrder</em>: 'priority'
+
+<ul>
+<li>Set to your preferred attribute for listing tickets in order.</li>
+</ul>
+</li>
+<li>
+<em>g:tracTicketStyle</em>: 'full'
+
+<ul>
+<li>Unless set to 'full', the ticket listing window will appear in the ticket
+UI. Also this will hide all other buffers other than the ticket UI.</li>
+</ul>
+</li>
+<li>
+<em>g:tracTicketFormat</em>: 1
+
+<ul>
+<li>If set to 1, show formatted text in ticket detail window. Otherwise, show
+the wiki markup content.</li>
+</ul>
+</li>
+<li>
+<em>g:tracWikiStyle</em>: 'full'
+
+<ul>
+<li>If set to 'full', the wiki UI will hide all other buffers.</li>
+</ul>
+</li>
+<li>
+<em>g:tracWikiPreview</em>: 1
+
+<ul>
+<li>If set to 1, the wiki UI will show a preview of the current page.</li>
+</ul>
+</li>
+<li>
+<em>g:tracWikiToC</em>: 1
+
+<ul>
+<li>If set to 1, the wiki UI will show the list of available pages.</li>
+</ul>
+</li>
+<li>
+<em>g:tracHideTracWiki</em>: 1
+
+<ul>
+<li>If set to 1, the list of wiki pages will not show the Trac's own pages.</li>
+</ul>
+</li>
+<li>
+<em>g:tracTimelineMax</em>: 50
+
+<ul>
+<li>Number of maximum number of entries to get in the timeline.</li>
+</ul>
+</li>
+</ul><h1>Links</h1>
+
+<ul>
+<li><a href="http://nsmgr8.github.com/vitra/" title="Vitra">Homepage</a></li>
+<li><a href="http://www.vim.org/scripts/script.php?script_id=4092">Vim scripts</a></li>
+<li><a href="https://github.com/nsmgr8/vitra" title="github">Development</a></li>
+<li><a href="https://github.com/nsmgr8/vitra/issues" title="issues, bug reports">Issues/Bug Reports</a></li>
+</ul><h1>Inspiration</h1>
+
+<p>This plugin is inspired by the the other trac vim integration plugin
+<a href="http://www.vim.org/scripts/script.php?script_id=2147"><code>Trac.vim</code></a> available for years.</p>
+
+<h1>License</h1>
+
+<p>The source code is licensed under MIT license. Please hack it to suit yourself.</p>
+
+<h2>The MIT License (MIT)</h2>
+
+<p>Copyright (c) 2011 M. Nasimul Haque</p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</p>
+      </section>
+      <footer>
+        <p>Project maintained by <a href="https://github.com/nsmgr8">nsmgr8</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="http://twitter.com/#!/michigangraham">mattgraham</a></small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><!--<![endif]-->
+    
+  </body>
+</html>
