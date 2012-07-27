@@ -1,4 +1,4 @@
-# `Vitra` (Trac UI for ViM)
+# `Vitra` - Trac UI for ViM
 
 [`Vitra`][vitra] is a [Trac][Trac] client UI for the wonderful universal editor
 [Vim][Vim]. It talks to a trac server via XML-RPC.  It provides a fancy UI for
