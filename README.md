@@ -10,7 +10,7 @@ windows.
 
 # Screenshots
 
-[Here][http://ascii.io/a/1440] you can find a quick screencast (asciicast).
+[Here][asciicast] you can find a quick screencast (asciicast).
 
 Ticket UI
 
@@ -287,3 +287,4 @@ SOFTWARE.
 [vimscripts]: http://www.vim.org/scripts/script.php?script_id=4092
 [development]: https://github.com/nsmgr8/vitra "github"
 [issues]: https://github.com/nsmgr8/vitra/issues "issues, bug reports"
+[asciicast]: http://ascii.io/a/1440
