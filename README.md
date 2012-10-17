@@ -10,6 +10,8 @@ windows.
 
 # Screenshots
 
+[Here][http://ascii.io/a/1440] you can find a quick screencast (asciicast).
+
 Ticket UI
 
 ![django tickets][djtkt]
