@@ -459,7 +459,6 @@ class SearchWindow(NonEditableWindow):
             ('<c-]>', ':python trac.wiki_view("<c-r><c-w>")<cr>'),
             ('<cr>', ':python trac.open_line()<cr>'),
         ])
-        u_vim.command('setlocal syntax=tracwiki')
         u_vim.command('syn match Keyword /\w*:>> .*$/ contains=Title')
         u_vim.command('syn match Title /\w*:>>/ contained')
 
