@@ -1,6 +1,6 @@
-*vitra.txt*
+*vitra.txt* A Trac client UI for the wonderful universal editor Vim
 
-                                *Vitra* (Trac UI)
+                                |Vitra| (Trac UI)
 
             ____   ____.__  __                   ____    _______
             \   \ /   /|__|/  |_____________    /_   |   \   _  \
@@ -10,18 +10,18 @@
                                             \/         \/       \/
 
 ==============================================================================
-Contents                                                                *Vitra*
+Contents                                                                |Vitra|
 
-    1. Introduction                                                *VitraIntro*
-    2. Settings                                                 *VitraSettings*
-    3. Usage                                                       *VitraUsage*
-        3.1 Ticket UI                                           *VitraTicketUI*
-        3.2 Wiki UI                                               *VitraWikiUI*
-        3.3 Others                                                *VitraOthers*
-    4. Commands                                                 *VitraCommands*
-    5. Keymaps                                                   *VitraKeymaps*
-    6. Options                                                   *VitraOptions*
-    7. License                                                   *VitraLicence*
+    1. Introduction                                                |VitraIntro|
+    2. Settings                                                 |VitraSettings|
+    3. Usage                                                       |VitraUsage|
+        3.1 Ticket UI                                           |VitraTicketUI|
+        3.2 Wiki UI                                               |VitraWikiUI|
+        3.3 Others                                                |VitraOthers|
+    4. Commands                                                 |VitraCommands|
+    5. Keymaps                                                   |VitraKeymaps|
+    6. Options                                                   |VitraOptions|
+    7. License                                                   |VitraLicence|
 
 ==============================================================================
 1. Introduction                                                    *VitraIntro*
