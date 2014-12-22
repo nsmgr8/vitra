@@ -1,5 +1,7 @@
 # `Vitra` - Trac UI for ViM
 
+[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/nsmgr8/vitra?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 [`Vitra`][vitra] is a [Trac][Trac] client UI for the wonderful universal editor
 [Vim][Vim]. It talks to a trac server via XML-RPC.  It provides a fancy UI for
 both wiki and tickets. A paginated list of tickets window, full ticket detail
